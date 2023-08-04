@@ -16,6 +16,7 @@ class GeneralFuncs:
             f'{exctb.tb_frame.f_code.co_name}:{exctb.tb_lineno}:{exctp}:'
         )
 
+
     def measure_time(func):
         """ Operador para calcular quanto tempo uma funcao leva para iniciar e terminar """
 
@@ -36,6 +37,7 @@ class GeneralFuncs:
             return result
         return wrapper
     
+
     def set_output():
         """ Printar datetime atual e funcao onde esta o print """
         
@@ -46,6 +48,7 @@ class GeneralFuncs:
             output_msg = f'\033[95m[{current_time}]:\033[0m \033[94m{frame.f_back.f_code.co_name}:\033[0m'
             original_print(output_msg, *args, **kwargs)
         builtins.print = costumized_output
+
 
     def element_handler(driver, xpath, operacao, seconds=5, click=False, extract=False, sendkeys=''):
         """
@@ -94,6 +97,7 @@ class GeneralFuncs:
                     return driver.find_element('xpath', f'{xpath}').text
             except:
                 GeneralFuncs.display_error()
+
 
 
 
