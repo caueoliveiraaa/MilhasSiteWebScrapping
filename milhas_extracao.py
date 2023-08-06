@@ -80,9 +80,9 @@ class MainScrappy:
 
 
     @staticmethod
-    def envia_dados_to_telegram(api_token: str, chat_id: str, message) -> None:
+    def envia_dados_to_telegram(chat_id: str, message) -> None:  
+        api_token = '6673695581:AAH2sG_-V3TgSxuo2_zkdfpvbWysBCZcOaQ'
         url = f'https://api.telegram.org/bot{api_token}/sendMessage'
-
         params = {'chat_id': chat_id, 'text': message}
         response = requests.post(url, params=params)
 
@@ -149,4 +149,5 @@ class MainScrappy:
 if __name__ == '__main__':
     os.system('cls')
     func.set_output()
-    MainScrappy.main()
+    # MainScrappy.main()
+    MainScrappy.envia_dados_to_telegram(chat_id='https://t.me/tele_orsq_py_conn_bot', message='hi')
