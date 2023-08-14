@@ -6,6 +6,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 
+
 class GeneralFuncs:
     def display_error() -> str:
         """ Mostrar mensagem de erro com detalhes """
