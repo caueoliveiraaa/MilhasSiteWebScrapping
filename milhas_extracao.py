@@ -1,3 +1,4 @@
+from destinations import DESTS_INTERNATIONAL, NOMES_SIGLAS
 import os
 from selenium import webdriver
 import requests
@@ -84,12 +85,11 @@ class Miles:
 
 
     @staticmethod
-    def validate_total_budget(total_value: str) -> bool:
-        total_value_str = total_value
+    def validate_total_budget(total_value: str, limit_value: float) -> bool:
         total_value = total_value.replace('.', '')
         total_value = float(str(total_value).replace(',', '.').replace('R$', '').strip())
-        print(f'{total_value_str} less than or equal to R$ 3.500,00: {total_value <= 3500.00}')
-        return total_value <= 00.00
+        print(f'R$ {total_value} less than or equal to R$ {limit_value}: {total_value <= limit_value}')
+        return total_value <= limit_value
 
 
     @staticmethod
@@ -128,10 +128,7 @@ class Miles:
     def scrape_max_miles_site() -> None:
         try:
             base_url: str = 'https://www.maxmilhas.com.br/busca-passagens-aereas/RT/'
-            cod_ori: str = 'GRU'
-            cod_dest: str = 'DXB'
             ending: str = '/1/0/0/EC'
-
             chrome_path = r'..\\driver_web\\chromedriver.exe'
             service = Service(executable_path=chrome_path)
             options = webdriver.ChromeOptions()
@@ -151,47 +148,62 @@ class Miles:
                 date_return_temp: str = date_return.strftime('%Y-%m-%d')
 
                 for i in range(0, 365):
-                    print(f'\n--> {i+1}º iteration: {date_ini_temp} to {date_return_temp}')
-
                     if i != 0:
                         date_ini: datetime = date_ini + timedelta(days=1)
                         date_return: datetime = date_ini + timedelta(days=7)
                         date_ini_temp: str = date_ini.strftime('%Y-%m-%d')
                         date_return_temp: str = date_return.strftime('%Y-%m-%d')
                     
-                    driver.get(base_url + f'{cod_ori}/{cod_dest}/{date_ini_temp}/{date_return_temp}{ending}')
-                    compania: str = Miles.find_company(driver, date_ini, date_return)
-                    if not len(compania):
-                        continue
+                    for index in range(len(DESTS_INTERNATIONAL)):
+                        cod_orig: str = DESTS_INTERNATIONAL[index][0]
+                        cod_dest: str = DESTS_INTERNATIONAL[index][1]
+                        vlr_limt: float = DESTS_INTERNATIONAL[index][2]
+                        print('\n')
+                        print(f'--> {i+1}º iteration: {date_ini_temp} to {date_return_temp}')
+                        print(f'--> searching for origin: {cod_orig} - destination: {cod_dest}')
 
-                    extracted_data_miles: dict = Miles.get_data_from_current_page(driver, compania)
-                    Miles.display_data(extracted_data_miles)
-
-                    if Miles.validate_total_budget(extracted_data_miles['valorTotal']):
                         try:
-                            func.element_handler(driver, XPATHS['comprarBtn'], operacao=3, seconds=60, click=True)
-                            func.element_handler(driver, XPATHS['comprarAgoraBtn'], operacao=3, seconds=60, click=True)
-                            func.element_handler(driver, XPATHS['inputEmail'], operacao=3, seconds=120)
+                            driver.get(base_url + f'{cod_orig}/{cod_dest}/{date_ini_temp}/{date_return_temp}{ending}')
+                            compania: str = Miles.find_company(driver, date_ini, date_return)
+                            if not len(compania):
+                                continue
+                            
+                            extracted_data_miles: dict = Miles.get_data_from_current_page(driver, compania)
+                            Miles.display_data(extracted_data_miles)
+
+                            if Miles.validate_total_budget(extracted_data_miles['valorTotal'], limit_value=vlr_limt):
+                                try:
+                                    func.element_handler(driver, XPATHS['comprarBtn'], operacao=3, seconds=60, click=True)
+                                    func.element_handler(driver, XPATHS['comprarAgoraBtn'], operacao=3, seconds=60, click=True)
+                                    func.element_handler(driver, XPATHS['inputEmail'], operacao=3, seconds=120)
+                                except:
+                                    print('\033[031m--> Erro clicking on buttons to find link!\033[0m')
+                                    continue
+
+                                extra_info = {
+                                    # 'origem': cod_orig + NOMES_SIGLAS[cod_orig],
+                                    # 'destino': cod_dest + NOMES_SIGLAS[cod_dest],
+                                    'origem': cod_orig,
+                                    'destino': cod_dest,
+                                    'dataIda': date_ini,
+                                    'dataVolta': date_return,
+                                    'linkTicket': driver.current_url,
+                                }
+
+                                BOT_MSG = Miles.create_message_telegram(extracted_data_miles, extra_info)
+                                JSON_DATA = Miles.get_json_data()
+                                # bot.send_message_to_group(JSON_DATA['chatMilhas'], BOT_MSG)
+                                bot.send_message_to_group(JSON_DATA['chatTestChannel'], BOT_MSG)
+
+                                #################################
+                                # p.alert(f'({i})\n{extracted_data_miles}')
+                                #################################
                         except:
-                            print('\033[031m--> Erro clicking on buttons to find link!\033[0m')
-                            continue
+                            print(
+                                f'--> Error extracting data: {cod_orig} - {cod_dest} - {vlr_limt} - {date_ini_temp} - {date_return_temp}'
+                            )
 
-                        extra_info = {
-                            'origem':'Guarulhos (GRU)',
-                            'destino':'Dubai (DXB)',
-                            'dataIda': date_ini,
-                            'dataVolta': date_return,
-                            'linkTicket': driver.current_url,
-                        }
-
-                        BOT_MSG = Miles.create_message_telegram(extracted_data_miles, extra_info)
-                        JSON_DATA = Miles.get_json_data()
-                        # bot.send_message_to_group(JSON_DATA['chatMilhas'], BOT_MSG)
-                        bot.send_message_to_group(JSON_DATA['chatTestChannel'], BOT_MSG)
-
-                        #################################
-                        p.alert(f'({i})\n{extracted_data_miles}')
-                        #################################
+                            func.display_error()
 
         except KeyboardInterrupt:   
             print('Program has stopped.')
