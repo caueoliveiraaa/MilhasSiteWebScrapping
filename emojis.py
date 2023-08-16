@@ -14,6 +14,7 @@ EMOJIS = {
     'sandGlass':'\u23F3',
     'luggage':'\U0001F6C4',
     'earthGlobeAmericas':'\U0001F30E',
+    'earthGlobeAfrica':'\U0001F30D',
     'earthGlobeEuropeAfrica':'\U0001F310',
     'brazilFlag':'\U0001F1E7\U0001F1F7',
     'unidatedStatesFlag':'\U0001F1FA\U0001F1F8',

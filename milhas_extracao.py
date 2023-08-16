@@ -95,8 +95,8 @@ class Miles:
     def create_message_telegram(extracted_data_miles: dict, extra_info: dict) -> str:
         message = f"{EMOJIS['botHead']} Olá. Seguem dados da passagem aérea:\n\n"
         message += f"{EMOJIS['airPlane']} Companhia Aérea:   {extracted_data_miles['companiaAerea']}\n"
-        message += f"{EMOJIS['brazilFlag']} Origem:   {extra_info['origem']}\n"
-        message += f"{EMOJIS['earthGlobeAmericas']} Destino:   {extra_info['destino']}\n"
+        message += f"{EMOJIS['earthGlobeAmericas']} Origem:   {extra_info['origem']}\n"
+        message += f"{EMOJIS['earthGlobeAfrica']} Destino:   {extra_info['destino']}\n"
         message += f"{EMOJIS['moneyBag']} Valor Líquido:   {extracted_data_miles['valorLiquido']}\n"
         message += f"{EMOJIS['checkMark']} Valor Total:   {extracted_data_miles['valorTotal']}\n\n"
         message += f"{EMOJIS['calendar']} Ida:  {extra_info['dataIda'].strftime('%d/%m/%Y')}\n"
@@ -169,8 +169,9 @@ class Miles:
                             
                             extracted_data_miles: dict = Miles.get_data_from_current_page(driver, compania)
                             Miles.display_data(extracted_data_miles)
-
-                            if Miles.validate_total_budget(extracted_data_miles['valorTotal'], limit_value=vlr_limt):
+                            
+                            if True:
+                            # if Miles.validate_total_budget(extracted_data_miles['valorTotal'], limit_value=vlr_limt):
                                 try:
                                     func.element_handler(driver, XPATHS['comprarBtn'], operacao=3, seconds=60, click=True)
                                     func.element_handler(driver, XPATHS['comprarAgoraBtn'], operacao=3, seconds=60, click=True)
@@ -188,7 +189,7 @@ class Miles:
                                     'dataVolta': date_return,
                                     'linkTicket': driver.current_url,
                                 }
-
+                                
                                 BOT_MSG = Miles.create_message_telegram(extracted_data_miles, extra_info)
                                 JSON_DATA = Miles.get_json_data()
                                 # bot.send_message_to_group(JSON_DATA['chatMilhas'], BOT_MSG)
