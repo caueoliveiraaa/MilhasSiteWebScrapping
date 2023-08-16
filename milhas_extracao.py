@@ -1,7 +1,6 @@
-from destinations import DESTS_INTERNATIONAL, NOMES_SIGLAS
+from destinations import DESTS_INTERNATIONAL, NOMES_SIGLAS, DESTS_NATIONAL
 import os
 from selenium import webdriver
-import requests
 from selenium.webdriver.chrome.service import Service
 from datetime import datetime, timedelta
 from general import GeneralFuncs as func
@@ -78,7 +77,7 @@ class Miles:
 
     @staticmethod
     def display_data(extracted_data_miles: dict) -> None:
-        print('\033[036m Extracted data: \033[0m')
+        print(f'\033[036m {EMOJIS["checkMark"]} Extracted data: \033[0m')
         for key, value in extracted_data_miles.items():
             value_temp = value
             print('\033[032m' + f'{key}: ' + value_temp + '\033[0m')
@@ -159,8 +158,8 @@ class Miles:
                         cod_dest: str = DESTS_INTERNATIONAL[index][1]
                         vlr_limt: float = DESTS_INTERNATIONAL[index][2]
                         print('\n')
-                        print(f'--> {i+1}º iteration: {date_ini_temp} to {date_return_temp}')
-                        print(f'--> searching for origin: {cod_orig} - destination: {cod_dest}')
+                        print(f'--> {EMOJIS["botHead"]} {i+1}º iteration: {date_ini_temp} to {date_return_temp}')
+                        print(f'--> {EMOJIS["botHead"]} searching for origin: {cod_orig} - destination: {cod_dest}')
 
                         try:
                             driver.get(base_url + f'{cod_orig}/{cod_dest}/{date_ini_temp}/{date_return_temp}{ending}')
@@ -181,10 +180,10 @@ class Miles:
                                     continue
 
                                 extra_info = {
-                                    # 'origem': cod_orig + NOMES_SIGLAS[cod_orig],
-                                    # 'destino': cod_dest + NOMES_SIGLAS[cod_dest],
-                                    'origem': cod_orig,
-                                    'destino': cod_dest,
+                                    'origem': cod_orig + '  ' + NOMES_SIGLAS.get(cod_orig, ''),
+                                    'destino': cod_dest + '  ' + NOMES_SIGLAS.get(cod_dest, ''),
+                                    # 'origem': cod_orig,
+                                    # 'destino': cod_dest,
                                     'dataIda': date_ini,
                                     'dataVolta': date_return,
                                     'linkTicket': driver.current_url,
@@ -200,7 +199,7 @@ class Miles:
                                 #################################
                         except:
                             print(
-                                f'--> Error extracting data: {cod_orig} - {cod_dest} - {vlr_limt} - {date_ini_temp} - {date_return_temp}'
+                                f'--> {EMOJIS["botHead"]} Error extracting data: {cod_orig} - {cod_dest} - {vlr_limt} - {date_ini_temp} - {date_return_temp}'
                             )
 
                             func.display_error()
