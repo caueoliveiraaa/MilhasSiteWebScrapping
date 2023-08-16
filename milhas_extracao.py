@@ -77,7 +77,7 @@ class Miles:
 
     @staticmethod
     def display_data(extracted_data_miles: dict) -> None:
-        print(f'\033[036m {EMOJIS["checkMark"]} Extracted data: \033[0m')
+        print(f'\033[036m{EMOJIS["checkMark"]} Extracted data: \033[0m')
         for key, value in extracted_data_miles.items():
             value_temp = value
             print('\033[032m' + f'{key}: ' + value_temp + '\033[0m')
@@ -170,8 +170,7 @@ class Miles:
                             extracted_data_miles: dict = Miles.get_data_from_current_page(driver, compania)
                             Miles.display_data(extracted_data_miles)
                             
-                            if True:
-                            # if Miles.validate_total_budget(extracted_data_miles['valorTotal'], limit_value=vlr_limt):
+                            if Miles.validate_total_budget(extracted_data_miles['valorTotal'], limit_value=vlr_limt):
                                 try:
                                     func.element_handler(driver, XPATHS['comprarBtn'], operacao=3, seconds=60, click=True)
                                     func.element_handler(driver, XPATHS['comprarAgoraBtn'], operacao=3, seconds=60, click=True)
@@ -183,8 +182,6 @@ class Miles:
                                 extra_info = {
                                     'origem': cod_orig + '  ' + NOMES_SIGLAS.get(cod_orig, ''),
                                     'destino': cod_dest + '  ' + NOMES_SIGLAS.get(cod_dest, ''),
-                                    # 'origem': cod_orig,
-                                    # 'destino': cod_dest,
                                     'dataIda': date_ini,
                                     'dataVolta': date_return,
                                     'linkTicket': driver.current_url,
