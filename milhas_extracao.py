@@ -72,7 +72,7 @@ class Miles:
             'voltaParada': str(volta_parada).replace("\n", ""),
         }
 
-        return extracted_data_miles
+        return extracted_data_miles, (len(extracted_data_miles) == 11)
 
 
     @staticmethod
@@ -87,8 +87,8 @@ class Miles:
     def validate_total_budget(total_value: str, limit_value: float) -> bool:
         total_value = total_value.replace('.', '')
         total_value = float(str(total_value).replace(',', '.').replace('R$', '').strip())
-        print(f'R$ {total_value} less than or equal to R$ {limit_value}: {total_value <= limit_value}')
-        return total_value <= limit_value
+        print(f'R$ {total_value} less than or equal to R$ {limit_value}: {(total_value <= limit_value)}')
+        return (total_value <= limit_value)
 
 
     @staticmethod
@@ -141,22 +141,17 @@ class Miles:
 
             with webdriver.Chrome(service=service, options=options) as driver:
                 os.system('cls')
-                date_ini: datetime = datetime.now()
-                date_return: datetime = date_ini + timedelta(days=7)
-                date_ini_temp: str = date_ini.strftime('%Y-%m-%d')
-                date_return_temp: str = date_return.strftime('%Y-%m-%d')
-
                 for i in range(0, 365):
-                    if i != 0:
-                        date_ini: datetime = date_ini + timedelta(days=1)
-                        date_return: datetime = date_ini + timedelta(days=7)
-                        date_ini_temp: str = date_ini.strftime('%Y-%m-%d')
-                        date_return_temp: str = date_return.strftime('%Y-%m-%d')
+                    date_ini: datetime = datetime.now() + timedelta(days=1)
+                    date_return: datetime = datetime.now() + timedelta(days=7)
+                    date_ini_temp: str = date_ini.strftime('%Y-%m-%d')
+                    date_return_temp: str = date_return.strftime('%Y-%m-%d')
                     
                     for index in range(len(DESTS_INTERNATIONAL)):
                         cod_orig: str = DESTS_INTERNATIONAL[index][0]
                         cod_dest: str = DESTS_INTERNATIONAL[index][1]
                         vlr_limt: float = DESTS_INTERNATIONAL[index][2]
+
                         print('\n')
                         print(f'--> {EMOJIS["botHead"]} {i+1}º iteration: {date_ini_temp} to {date_return_temp}')
                         print(f'--> {EMOJIS["botHead"]} searching for origin: {cod_orig} - destination: {cod_dest}')
@@ -167,13 +162,19 @@ class Miles:
                             if not len(compania):
                                 continue
                             
-                            extracted_data_miles: dict = Miles.get_data_from_current_page(driver, compania)
+                            extracted_data_miles, correct_len = Miles.get_data_from_current_page(driver, compania)
                             Miles.display_data(extracted_data_miles)
+
+                            if not correct_len:
+                                print('--> Could not extract data correctly')
+                                continue
                             
                             if Miles.validate_total_budget(extracted_data_miles['valorTotal'], limit_value=vlr_limt):
                                 try:
                                     func.element_handler(driver, XPATHS['comprarBtn'], operacao=3, seconds=60, click=True)
+                                    p.sleep(1.5)
                                     func.element_handler(driver, XPATHS['comprarAgoraBtn'], operacao=3, seconds=60, click=True)
+                                    p.sleep(1.5)
                                     func.element_handler(driver, XPATHS['inputEmail'], operacao=3, seconds=120)
                                 except:
                                     print('\033[031m--> Erro clicking on buttons to find link!\033[0m')
@@ -189,18 +190,19 @@ class Miles:
                                 
                                 BOT_MSG = Miles.create_message_telegram(extracted_data_miles, extra_info)
                                 JSON_DATA = Miles.get_json_data()
-                                # bot.send_message_to_group(JSON_DATA['chatMilhas'], BOT_MSG)
                                 bot.send_message_to_group(JSON_DATA['chatTestChannel'], BOT_MSG)
-
-                                #################################
-                                # p.alert(f'({i})\n{extracted_data_miles}')
-                                #################################
                         except:
                             print(
-                                f'--> {EMOJIS["botHead"]} Error extracting data: {cod_orig} - {cod_dest} - {vlr_limt} - {date_ini_temp} - {date_return_temp}'
+                                f'--> {EMOJIS["botHead"]} Error extracting data: ' + 
+                                f'{cod_orig} - {cod_dest} - {vlr_limt} - {date_ini_temp} - {date_return_temp}'
                             )
-
                             func.display_error()
+                        finally:
+                            cod_orig = ''
+                            cod_dest = ''
+                            vlr_limt = ''
+                            compania = ''
+                            extra_info = {}
 
         except KeyboardInterrupt:   
             print('Program has stopped.')
