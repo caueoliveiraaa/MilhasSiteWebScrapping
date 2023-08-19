@@ -28,7 +28,7 @@ class MilhasNacionais(Miles):
             options.add_argument('--disable-popup-block')
             options.add_argument("no-default-browser-check")
             options.add_argument("--force-device-scale-factor=0.9")
-            options.add_argument('--headless')
+            # options.add_argument('--headless')
 
             with webdriver.Chrome(service=service, options=options) as driver:
                 os.system('cls')
@@ -68,19 +68,9 @@ class MilhasNacionais(Miles):
                                     continue
                                 
                                 if Miles.validate_total_budget(extracted_data_miles['valorTotal'], limit_value=vlr_limt):
-                                    try:
-                                        func.element_handler(driver, XPATHS['comprarBtn'], operacao=3, seconds=60, click=True)
-                                        p.sleep(1.5)
-                                        func.element_handler(driver, XPATHS['comprarAgoraBtn'], operacao=3, seconds=60, click=True)
-                                        p.sleep(1.5)
-                                        func.element_handler(driver, XPATHS['inputEmail'], operacao=3, seconds=120)
-                                    except:
-                                        print('\033[031m--> Erro clicking on buttons to find link!\033[0m')
-                                        continue
-
                                     extra_info = {
-                                        'origem': cod_orig + '  ' + NOMES_SIGLAS.get(cod_orig, ''),
-                                        'destino': cod_dest + '  ' + NOMES_SIGLAS.get(cod_dest, ''),
+                                        'origem': f'{cod_orig}  {NOMES_SIGLAS.get(cod_orig, "")}',
+                                        'destino': f'{cod_dest}  {NOMES_SIGLAS.get(cod_dest, "")}',
                                         'dataIda': date_ini,
                                         'dataVolta': date_return,
                                         'linkTicket': driver.current_url,
@@ -101,9 +91,11 @@ class MilhasNacionais(Miles):
                                 vlr_limt = ''
                                 compania = ''
                                 extra_info = {}
+                                continue
                     except:
                         print(f'--> {EMOJIS["botHead"]} Error extracting data in iteration {i}: ')
                         func.display_error()
+                        continue
 
         except KeyboardInterrupt:   
             print('Program has stopped.')
@@ -126,7 +118,7 @@ class MilhasNacionais(Miles):
             options.add_argument('--disable-popup-block')
             options.add_argument("no-default-browser-check")
             options.add_argument("--force-device-scale-factor=0.9")
-            options.add_argument('--headless')
+            # options.add_argument('--headless')
 
             with webdriver.Chrome(service=service, options=options) as driver:
                 os.system('cls')
@@ -168,19 +160,9 @@ class MilhasNacionais(Miles):
                                     continue
                                 
                                 if Miles.validate_total_budget(extracted_data_miles['valorTotal'], limit_value=vlr_limt):
-                                    try:
-                                        func.element_handler(driver, XPATHS['comprarBtn'], operacao=3, seconds=60, click=True)
-                                        p.sleep(1.5)
-                                        func.element_handler(driver, XPATHS['comprarAgoraBtn'], operacao=3, seconds=60, click=True)
-                                        p.sleep(1.5)
-                                        func.element_handler(driver, XPATHS['inputEmail'], operacao=3, seconds=120)
-                                    except:
-                                        print('\033[031m--> Erro clicking on buttons to find link!\033[0m')
-                                        continue
-
                                     extra_info = {
-                                        'origem': cod_orig + '  ' + NOMES_SIGLAS.get(cod_orig, ''),
-                                        'destino': cod_dest + '  ' + NOMES_SIGLAS.get(cod_dest, ''),
+                                        'origem': f'{cod_orig}  {NOMES_SIGLAS.get(cod_orig, "")}',
+                                        'destino': f'{cod_dest}  {NOMES_SIGLAS.get(cod_dest, "")}',
                                         'dataIda': date_ini,
                                         'dataVolta': date_return,
                                         'linkTicket': driver.current_url,
@@ -201,9 +183,11 @@ class MilhasNacionais(Miles):
                                 vlr_limt = ''
                                 compania = ''
                                 extra_info = {}
+                                continue
                     except:
                         print(f'--> {EMOJIS["botHead"]} Error extracting data in iteration {i}: ')
                         func.display_error()
+                        continue
 
         except KeyboardInterrupt:   
             print('Program has stopped.')

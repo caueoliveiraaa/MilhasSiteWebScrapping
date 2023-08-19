@@ -40,5 +40,10 @@ EMOJIS = {
     'egyptFlag': '\U0001F1EA\U0001F1EC',
     'maldivesFlag': '\U0001F1F2\U0001F1FB',
     'southAfricaFlag': '\U0001F1FF\U0001F1E6',
-    'dominicanRepublicFlag': '\U0001F1E9\U0001F1F4'
+    'dominicanRepublicFlag': '\U0001F1E9\U0001F1F4',
+    'uruguayFlag': '\U0001F1FA\U0001F1FE',
+    'chinaFlag': '\U0001F1E8\U0001F1F3',
+    'swedenFlag': '\U0001F1F8\U0001F1EA',
+    'southKoreaFlag': '\U0001F1F0\U0001F1F7',
+    'australiaFlag': '\U0001F1E6\U0001F1FA',
 }
