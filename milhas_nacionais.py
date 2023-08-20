@@ -28,7 +28,7 @@ class MilhasNacionais(Miles):
             options.add_argument('--disable-popup-block')
             options.add_argument("no-default-browser-check")
             options.add_argument("--force-device-scale-factor=0.9")
-            # options.add_argument('--headless')
+            options.add_argument('--headless')
 
             with webdriver.Chrome(service=service, options=options) as driver:
                 os.system('cls')
@@ -118,7 +118,7 @@ class MilhasNacionais(Miles):
             options.add_argument('--disable-popup-block')
             options.add_argument("no-default-browser-check")
             options.add_argument("--force-device-scale-factor=0.9")
-            # options.add_argument('--headless')
+            options.add_argument('--headless')
 
             with webdriver.Chrome(service=service, options=options) as driver:
                 os.system('cls')

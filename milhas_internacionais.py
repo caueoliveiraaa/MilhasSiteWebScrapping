@@ -18,7 +18,7 @@ class Miles:
     @staticmethod
     def find_company(driver: WebDriver, date_ini: datetime, date_return: datetime) -> str:
         contador = 0
-        while contador < 60:
+        while contador < 120:
             contador += 1
             time.sleep(1)
 
@@ -48,30 +48,35 @@ class Miles:
 
     @staticmethod
     def get_data_from_current_page(driver: WebDriver, compania: str) -> dict:
-        valor_liquido: str = func.element_handler(driver, xpath=XPATHS['valorLiquido'], operacao=2, extract=True)
-        valor_total: str = func.element_handler(driver, xpath=XPATHS['valorTotal'], operacao=2, extract=True)
-        ida_hora_saida: str = func.element_handler(driver, xpath=XPATHS['idaHoraSaida'], operacao=2, extract=True)
-        ida_hora_chegada: str = func.element_handler(driver, xpath=XPATHS['idaHoraChegada'], operacao=2, extract=True)
-        ida_duracao: str = func.element_handler(driver, xpath=XPATHS['idaDuracao'], operacao=2, extract=True)
-        ida_parada: str = func.element_handler(driver, xpath=XPATHS['idaParada'], operacao=2, extract=True)
-        volta_hora_saida: str = func.element_handler(driver, xpath=XPATHS['voltaHoraSaida'], operacao=2, extract=True)
-        volta_hora_chegada: str = func.element_handler(driver, xpath=XPATHS['voltaHoraChegada'], operacao=2, extract=True)
-        volta_duracao: str = func.element_handler(driver, xpath=XPATHS['voltaDuracao'], operacao=2, extract=True)
-        volta_parada: str = func.element_handler(driver, xpath=XPATHS['voltaParada'], operacao=2, extract=True)
+        extracted_data_miles: dict = {}
 
-        extracted_data_miles: dict = {
-            'companiaAerea': str(compania).replace("\n", ""),
-            'valorLiquido': str(valor_liquido).replace("\n", ""),
-            'valorTotal': str(valor_total).replace("\n", ""),
-            'idaHoraSaida': str(ida_hora_saida).replace("\n", "").split('+')[0],
-            'idaHoraChegada': str(ida_hora_chegada).replace("\n", "").split('+')[0],
-            'idaDuracao': str(ida_duracao).replace("\n", ""),
-            'idaParada': str(ida_parada).replace("\n", ""),
-            'voltaHoraSaida': str(volta_hora_saida).replace("\n", "").split('+')[0],
-            'voltaHoraChegada': str(volta_hora_chegada).replace("\n", "").split('+')[0],
-            'voltaDuracao': str(volta_duracao).replace("\n", ""),
-            'voltaParada': str(volta_parada).replace("\n", ""),
-        }
+        try:
+            valor_liquido: str = func.element_handler(driver, xpath=XPATHS['valorLiquido'], operacao=2, extract=True)
+            valor_total: str = func.element_handler(driver, xpath=XPATHS['valorTotal'], operacao=2, extract=True)
+            ida_hora_saida: str = func.element_handler(driver, xpath=XPATHS['idaHoraSaida'], operacao=2, extract=True)
+            ida_hora_chegada: str = func.element_handler(driver, xpath=XPATHS['idaHoraChegada'], operacao=2, extract=True)
+            ida_duracao: str = func.element_handler(driver, xpath=XPATHS['idaDuracao'], operacao=2, extract=True)
+            ida_parada: str = func.element_handler(driver, xpath=XPATHS['idaParada'], operacao=2, extract=True)
+            volta_hora_saida: str = func.element_handler(driver, xpath=XPATHS['voltaHoraSaida'], operacao=2, extract=True)
+            volta_hora_chegada: str = func.element_handler(driver, xpath=XPATHS['voltaHoraChegada'], operacao=2, extract=True)
+            volta_duracao: str = func.element_handler(driver, xpath=XPATHS['voltaDuracao'], operacao=2, extract=True)
+            volta_parada: str = func.element_handler(driver, xpath=XPATHS['voltaParada'], operacao=2, extract=True)
+
+            extracted_data_miles = {
+                'companiaAerea': str(compania).replace("\n", ""),
+                'valorLiquido': str(valor_liquido).replace("\n", ""),
+                'valorTotal': str(valor_total).replace("\n", ""),
+                'idaHoraSaida': str(ida_hora_saida).replace("\n", "").split('+')[0],
+                'idaHoraChegada': str(ida_hora_chegada).replace("\n", "").split('+')[0],
+                'idaDuracao': str(ida_duracao).replace("\n", ""),
+                'idaParada': str(ida_parada).replace("\n", ""),
+                'voltaHoraSaida': str(volta_hora_saida).replace("\n", "").split('+')[0],
+                'voltaHoraChegada': str(volta_hora_chegada).replace("\n", "").split('+')[0],
+                'voltaDuracao': str(volta_duracao).replace("\n", ""),
+                'voltaParada': str(volta_parada).replace("\n", ""),
+            }
+        except:
+            func.display_error()
 
         return extracted_data_miles, (len(extracted_data_miles) == 11)
 
@@ -138,7 +143,7 @@ class Miles:
             options.add_argument('--disable-popup-block')
             options.add_argument("no-default-browser-check")
             options.add_argument("--force-device-scale-factor=0.9")
-            # options.add_argument('--headless')
+            options.add_argument('--headless')
 
             with webdriver.Chrome(service=service, options=options) as driver:
                 os.system('cls')
@@ -228,7 +233,7 @@ class Miles:
             options.add_argument('--disable-popup-block')
             options.add_argument("no-default-browser-check")
             options.add_argument("--force-device-scale-factor=0.9")
-            # options.add_argument('--headless')
+            options.add_argument('--headless')
 
             with webdriver.Chrome(service=service, options=options) as driver:
                 os.system('cls')
