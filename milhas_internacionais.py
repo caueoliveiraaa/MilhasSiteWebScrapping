@@ -231,7 +231,7 @@ class Miles:
             options.add_argument('--start-maximized')
             options.add_argument('--disable-extensions')
             options.add_argument('--disable-popup-block')
-            options.add_argument("no-default-browser-check")
+            options.add_argument("--no-default-browser-check")
             options.add_argument("--force-device-scale-factor=0.9")
             options.add_argument('--headless')
 
