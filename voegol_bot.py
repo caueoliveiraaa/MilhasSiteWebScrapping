@@ -103,7 +103,6 @@ class VoeGolBot():
         return (total_value <= limit_value)
 
 
-    # Finish
     def get_data_departure(self) -> dict:
         """ Extract data from page """
 
@@ -155,6 +154,13 @@ class VoeGolBot():
 
         print('Data not found')
         return {}
+
+
+    # Finish
+    def get_data_arrival(self) -> dict:
+        """ Extract data from page """
+
+        ...
 
 
     def insert_data_homepage(self, data_insert) -> Tuple[bool, datetime]:
@@ -261,6 +267,7 @@ class VoeGolBot():
                     'str_destination': data_trip_lst[1],
                 }
 
+                os.system('cls')
                 print(f'\n{key_index + 1}º iteration with dates ', end=' ')
                 print(f'{date_departure.strftime("%d/%m/%Y")}', end=' ')
                 print(f'and {date_return.strftime("%d/%m/%Y")}')
@@ -298,7 +305,8 @@ class VoeGolBot():
                             time.sleep(8)
                         except:
                             pass
-
+                            
+                        # Extract departure data
                         data_site = self.get_data_departure()
                         if len(data_site) > 0:
                             self.display_data(data_site)
@@ -315,12 +323,17 @@ class VoeGolBot():
                     if not departure_is_valid:
                         continue
 
+                    # Extract destination data
+
                     input('click')
                     
                     self.driver.find_element('xpath', '/html/body/app-root/b2c-flow/main/b2c-select-flight/section/div/section/form/div[1]').click()
                     print('Clicked departure ticket found')
 
                     input('next')
+
+                    # Verify values and send message
+
 
                 except (KeyboardInterrupt, SystemExit):
                     quit()
