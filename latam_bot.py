@@ -36,6 +36,166 @@ class LatamBot():
             self.driver.close()
 
 
+    @funcs.measure_time 
+    def main(self) -> None:
+        """ Run main script bot """
+        os.system('cls')
+        json_data = self.get_json_data()
+
+        def accept_cookies():
+            try:
+                self.driver.find_element('xpath', xpaths['all_cookies']).click()
+                print_yellow('Clicked "accept all cookies"')
+            except:
+                pass
+
+        # Run one year in dates
+        for index_date in range(1, 366):
+            # search dates
+            date_departure = datetime.now() + timedelta(days=index_date)
+            date_return = datetime.now() + timedelta(days=(index_date + 7))
+
+
+            for key_index, trip_values in DESTS_NATIONAL.items():
+
+                data_insert = {
+                    'date_departure': date_departure,
+                    'date_return': date_return,
+                    'str_origin': trip_values[0],
+                    'str_destination': trip_values[1],
+                }
+
+                os.system('cls')
+                print(f'\n{key_index + 1}º iteration with dates ', end=' ')
+                print(f'{date_departure.strftime("%d/%m/%Y")}', end=' ')
+                print(f'and {date_return.strftime("%d/%m/%Y")}')
+                print(f'Trip: {trip_values[0]} -> {trip_values[1]}')
+
+
+                try:
+                    # open site
+                    website_url = 'https://www.latamairlines.com/br/pt'
+                    self.driver.get(website_url)
+
+                    # Insert search data
+                    homepage_counter = 0
+                    while homepage_counter < 60:    
+                        homepage_counter += 1
+                        print(f'Attemp {homepage_counter}')
+
+                        p.sleep(1)
+                        accept_cookies()
+
+                        # insert data 
+                        if not self.insert_data_homepage(data_insert):
+                            accept_cookies()
+                            continue
+                        
+                        # Go to new tab and continue process
+                        self.switch_to_new_tab()
+                        print('Entered new tab')
+                        break
+                    
+                    # Extract values from departure page
+                    data_departure = {}
+                    departure_counter = 0
+                    while departure_counter < 60:
+                        departure_counter += 1
+                        print(f'Searching for departure data {departure_counter}')
+                        p.sleep(1)
+
+                        data_departure, found_data = self.click_and_get_trip_data()
+                        if found_data:
+                            self.display_data(data_departure)
+                            break
+                        else:
+                            print('Data not found')
+
+                    # Verify if departure time is less the total limit
+                    cash_limit: float = trip_values[2]
+                    if not self.validate_total_budget(data_departure['departure_value'], cash_limit):
+                        print_red(f'Departure value {data_departure["departure_value"]} less than limit {cash_limit}')
+                        continue
+
+                    # Extract values from destination page
+                    data_return = {}
+                    return_counter = 0
+                    while return_counter < 60:
+                        return_counter += 1
+                        print(f'Searching for return data {return_counter}')
+                        p.sleep(1)
+
+                        data_return, found_data = self.click_and_get_trip_data()
+                        if found_data:
+                            self.display_data(data_return)
+                            break
+                        else:
+                            print('Data not found')
+
+                    # Verify if return value is less than limit
+                    if not self.validate_total_budget(data_return['departure_value'], cash_limit):
+                        print_red(f'Departure value {data_return["departure_value"]} less than lim   it {cash_limit}')
+                        continue
+
+                    # Wait for seats button to load
+                    WebDriverWait(self.driver, 15).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="button9"]')))
+                    print_green('Got to trip url')
+
+                    # Sum both tickets' price
+                    total_value = self.get_total_value(
+                        value_1=data_departure['departure_value'],
+                        value_2=data_return['departure_value']
+                    )
+
+                    telegram_data = {
+                        'company': data_departure['company'],
+                        'origem': f"{data_insert['str_origin']},  {NOMES_SIGLAS.get(data_insert['str_origin'], '')}",
+                        'destino': f"{data_insert['str_origin']},  {NOMES_SIGLAS.get(data_insert['str_destination'], '')}",
+                        'valor_ida': data_departure['departure_value'],
+                        'valor_volta': data_return['departure_value'],
+                        'valor_total': total_value,
+                        'data_ida': data_insert['date_departure'],
+                        'ida_hora_saida': data_departure['flight_time'],
+                        'ida_hora_chegada': data_departure['arrival_time'],
+                        'ida_duracao': data_departure['departure_duration'],
+                        'tipo_voo': data_departure['trip_type_departure'],
+                        'data_volta': data_insert['date_return'],
+                        'volta_hora_saida': data_return['flight_time'],
+                        'volta_hora_chegada': data_return['arrival_time'],
+                        'volta_Duracao': data_return['departure_duration'],
+                        'volta_tipo': data_return['trip_type_departure'],
+                        'company_return': data_return['company'],
+                        'link_ticket': self.driver.current_url,
+                    }
+                
+                    # Send message to Telegram
+                    bot_message = self.create_message_telegram(telegram_data)
+                    bot.send_message_to_group(json_data['channelNacional'], bot_message)
+
+                except (KeyboardInterrupt, SystemExit):
+                    quit()
+                except:     
+                    funcs.display_error()
+
+
+    def build_driver(self) -> None:
+        """ Chrome / driver config """
+
+        path_chrome = r'..\\driver_web\\chromedriver.exe'
+        service = Service(executable_path=path_chrome)
+
+        options = webdriver.ChromeOptions()
+        options.add_argument('--disable-infobars')
+        options.add_argument('--start-maximized')
+        options.add_argument('--disable-extensions')
+        options.add_argument('--disable=popup-block')
+        options.add_argument('--no-defaut-browser-check')
+        options.add_argument('--force-device-scale-factor=0.8')
+        # options.add_argument('--headless')
+        
+        self.driver = webdriver.Chrome(service=service, options=options)
+
+
     def get_month_in_ptbr(self, month_english):
         """ Return name of month in Brazilian Portuguese """
 
@@ -184,35 +344,28 @@ class LatamBot():
         for key, value in data.items(): print_green(f'"{key}": "{value}"')
 
 
-    # Finish
-    def create_message_telegram(self, message_data: dict) -> str:
+    def create_message_telegram(self, data_telegram: dict) -> str:
         """ Set up message to be sent to Telegram groups """
 
         try:
             message = f"{EMOJIS['botHead']} Olá. Seguem dados da passagem aérea:\n\n"
-            message += f"{EMOJIS['airPlane']} Companhia Aérea:   {data_telegram['company']}\n"
+            message += f"{EMOJIS['airPlane']} Companhia Aérea Ida:   {data_telegram['company']}\n"
             message += f"{EMOJIS['earthGlobeAmericas']} Origem:   {data_telegram['origem']}\n"
             message += f"{EMOJIS['earthGlobeAfrica']} Destino:   {data_telegram['destino']}\n"
             message += f"{EMOJIS['moneyBag']} Valor ida:   {data_telegram['valor_ida']}\n"
-
             message += f"{EMOJIS['moneyBag']} Valor volta:   {data_telegram['valor_volta']}\n"
             message += f"{EMOJIS['checkMark']} Valor Total:   {data_telegram['valor_total']}\n\n"
-
             message += f"{EMOJIS['calendar']} Ida:  {data_telegram['data_ida'].strftime('%d/%m/%Y')}\n"
             message += f"{EMOJIS['wallClock']} Hora de Saída:   {data_telegram['ida_hora_saida']} hrs\n"   
             message += f"{EMOJIS['wallClock']} Hora de Chegada:   {data_telegram['ida_hora_chegada']} hrs\n"
             message += f"{EMOJIS['sandGlass']} Duração do Voo:   {data_telegram['ida_duracao']}\n"
             message += f"{EMOJIS['coffeeMug']} {data_telegram['tipo_voo']}\n\n"
             message += f"{EMOJIS['calendar']} Volta:  {data_telegram['data_volta'].strftime('%d/%m/%Y')}\n"
-
             message += f"{EMOJIS['wallClock']} Hora de Saída:   {data_telegram['volta_hora_saida']} hrs\n"
-
             message += f"{EMOJIS['wallClock']} Hora de Chegada:   {data_telegram['volta_hora_chegada']} hrs\n"
-
             message += f"{EMOJIS['sandGlass']} Duração do Voo:   {data_telegram['volta_Duracao']}\n"
-
-            message += f"{EMOJIS['coffeeMug']} Paradas:   {data_telegram['volta_parada']}\n"
-
+            message += f"{EMOJIS['coffeeMug']} Paradas:   {data_telegram['volta_tipo']}\n"
+            message += f"{EMOJIS['airPlane']} Companhia Aérea Volta:  {data_telegram['company_return']}\n"
             message += f"{EMOJIS['earthGlobeEuropeAfrica']} Link: {data_telegram['link_ticket']}"
         except:
             funcs.display_error()
@@ -230,8 +383,7 @@ class LatamBot():
         return (total_value <= limit_value)
 
 
-    # Finish
-    def get_departure_data(self) -> Tuple[dict, bool]:
+    def click_and_get_trip_data(self) -> Tuple[dict, bool]:
         """ Extract data from departure page """
 
         found = False
@@ -244,49 +396,70 @@ class LatamBot():
             'company': '',
         }
 
-        for _ in range(3):
-            try:
-                departure_value = self.driver.find_element('xpath', xpaths['departure_value']).text
-                if len(str(departure_value)):
-                    data['departure_value'] = departure_value
-                else:
-                    print('Value not found')
-                    continue
+        for i in range(3):
+            print(f'Searching data attemp {i + 1}')
+            p.sleep(3)
 
+            try:
+                # Get value with div value
+                WebDriverWait(self.driver, 35).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="WrapperCardFlight0"]/div/div[1]')))
+                var_div = self.driver.find_element('xpath', '//*[@id="WrapperCardFlight0"]/div/div[1]').text
+                if len(str(var_div)):
+                    value = ''
+                    string_list = str(var_div).split('BRL')
+                    data['departure_value'] = string_list[-1]
+                else:
+                    raise ValueError('Value not found')
+                
+                # Get arrival time
                 arrival_time = self.driver.find_element('xpath', xpaths['arrival_time']).text
                 if len(str(arrival_time)):
                     data['arrival_time'] = arrival_time
                 else:
-                    print('Arrival time found')
-                    continue
+                    raise ValueError('Arrival time found')
 
+                # Get trip duraton
                 departure_duration = self.driver.find_element('xpath', xpaths['departure_duration']).text
                 if len(str(departure_duration)):
                     data['departure_duration'] = departure_duration
                 else:
-                    print('Duration found')
-                    continue
+                    raise ValueError('Duration found')
                     
+                # Get departure time
                 flight_time = self.driver.find_element('xpath', xpaths['flight_time']).text
                 if len(str(flight_time)):
                     data['flight_time'] = flight_time
                 else:
-                    print('Departure time found')
-                    continue
+                    raise ValueError('Departure time found')
 
+                # Get type of trip
                 trip_type_departure = self.driver.find_element('xpath', xpaths['trip_type_departure']).text
                 if len(str(trip_type_departure)):
                     data['trip_type_departure'] = trip_type_departure
                 else:
-                    print('Type found')
-                    continue
-
-                company = self.driver.find_element('xpath', xpaths['company']).text
-                if len(str(company)):
-                    data['company'] = company
+                    raise ValueError('Type found')
+                
+                # Get company
+                company_temp = self.driver.find_element('xpath', xpaths['company']).text
+                if len(str(company_temp)):
+                    temp_list = str(company_temp).split('pela')
+                    data['company'] = temp_list[-1].strip()
                 else:
-                    print('Company found')
-                    continue
+                    raise ValueError('Company found')
+                
+                print('Extracted all data')
+
+                # Click div
+                p.sleep(1)
+                self.driver.find_element('xpath', xpaths['frist_div_departure']).click()
+                print_green('Clicked div where data has been found')
+                p.sleep(2)
+
+                # Click Continue with light ticket
+                WebDriverWait(self.driver, 30).until(EC.element_to_be_clickable((By.XPATH, xpaths['light_departure'])))
+                p.sleep(3)
+                self.driver.find_element('xpath', xpaths['light_departure']).click()
+                print_green('Clicked Continue with light ticket')
 
                 found = True
                 break
@@ -296,157 +469,25 @@ class LatamBot():
         return data, found
 
 
-    # Finish
-    def get_return_data(self) -> Tuple[dict, bool]:
-        """ Extract data from return trip page """
-        
-        found = False
-        data = {
-            'return_value': '',
-            'return_duration': '',
-            'returnflight_time': '',
-            'return_arrival_time': '',
-            'trip_type_return': '',
-            'company': '',
-        }
+    def get_json_data(self) -> dict:
+        JSON_DATA: dict = {}
+        with open('bot_info.json', 'r') as json_file:
+            JSON_DATA = json.load(json_file)
 
-        for _ in range(3):
-            try:
-                return_value = self.driver.find_element('xpath', xpaths['return_value']).text
-                if len(str(return_value)):
-                    data['return_value'] = return_value
-                else:
-                    print('Value not found')
-                    continue
+        return JSON_DATA
 
 
-                found = True
-                break
-            except:
-                funcs.display_error()
+    def get_total_value(self, value_1, value_2) -> float:
+        """ Return the sum of both tickets' values """
 
-        return data, found
-
-
-    # Finish
-    @funcs.measure_time 
-    def main(self) -> None:
-        """ Run main script bot """
-        os.system('cls')
-
-        def accept_cookies():
-            try:
-                self.driver.find_element('xpath', xpaths['all_cookies']).click()
-                print_yellow('Clicked "accept all cookies"')
-            except:
-                pass
-
-        # Run one year in dates
-        for index_date in range(1, 366):
-            # search dates
-            date_departure = datetime.now() + timedelta(days=index_date)
-            date_return = datetime.now() + timedelta(days=(index_date + 7))
-
-
-            for key_index, trip_values in DESTS_NATIONAL.items():
-
-                data_insert = {
-                    'date_departure': date_departure,
-                    'date_return': date_return,
-                    'str_origin': trip_values[0],
-                    'str_destination': trip_values[1],
-                }
-
-                os.system('cls')
-                print(f'\n{key_index + 1}º iteration with dates ', end=' ')
-                print(f'{date_departure.strftime("%d/%m/%Y")}', end=' ')
-                print(f'and {date_return.strftime("%d/%m/%Y")}')
-                print(f'Trip: {trip_values[0]} -> {trip_values[1]}')
-
-
-                try:
-                    # open site
-                    website_url = 'https://www.latamairlines.com/br/pt'
-                    self.driver.get(website_url)
-
-                    # Insert search data
-                    homepage_counter = 0
-                    while homepage_counter < 60:    
-                        homepage_counter += 1
-                        print(f'Attemp {homepage_counter}')
-
-                        p.sleep(1)
-                        accept_cookies()
-
-                        # insert data 
-                        if not self.insert_data_homepage(data_insert):
-                            accept_cookies()
-                            continue
-                        
-                        # Go to new tab and continue process
-                        self.switch_to_new_tab()
-                        print('Entered new tab')
-                        break
-                    
-                    # Extract values from departure page]
-                    data_departure = {}
-                    departure_counter = 0
-                    while departure_counter < 60:
-                        departure_counter += 1
-                        print(f'Searching for departure data {departure_counter}')
-                        p.sleep(1)
-
-                        data_departure, found_data = self.get_departure_data()
-                        if found_data:
-                            self.display_data(data_departure)
-                            break
-                        else:
-                            print('Data not found')
-
-                    input(f'here')
-
-                    # Extract values from destination page
-                    data_return = {}
-                    return_counter = 0
-                    while return_counter < 60:
-                        return_counter += 1
-                        print(f'Searching for return data {return_counter}')
-                        p.sleep(1)
-
-                        data_return, found_data = self.get_departure_data()
-                        if found_data:
-                            self.display_data(data_return)
-                            break
-                        else:
-                            print('Data not found')
-
-                    # Verify values and send message
-
-                    cash_limit: float = trip_values[2]
-
-
-                except (KeyboardInterrupt, SystemExit):
-                    quit()
-                except:     
-                    funcs.display_error()
-
-
-    def build_driver(self) -> None:
-        """ Chrome / driver config """
-
-        path_chrome = r'..\\driver_web\\chromedriver.exe'
-        service = Service(executable_path=path_chrome)
-
-        options = webdriver.ChromeOptions()
-        options.add_argument('--disable-infobars')
-        options.add_argument('--start-maximized')
-        options.add_argument('--disable-extensions')
-        options.add_argument('--disable=popup-block')
-        options.add_argument('--no-defaut-browser-check')
-        # options.add_argument('--force-device-scale-factor=9.0')
-        # options.add_argument('--headless')
-        
-        self.driver = webdriver.Chrome(service=service, options=options)
+        value_1 = value_1.replace('.', '')
+        value_1 = float(str(value_1).replace(',', '.').replace('R$', '').strip()) 
+        value_2 = value_2.replace('.', '')
+        value_2 = float(str(value_2).replace(',', '.').replace('R$', '').strip()) 
+        result = (value_1 + value_2)
+        formatted_result = '{:,.2f}'.format(result)
+        formatted_result = formatted_result.replace('.', ',', 1)
+        return formatted_result
 
 
 if __name__ == '__main__':
