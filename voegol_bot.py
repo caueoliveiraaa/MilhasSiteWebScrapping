@@ -79,7 +79,7 @@ class VoeGolBot():
             if len(str(value_departure)) > 1:
                 website_data['value_departure'] = value_departure
 
-            duration_departure = self.driver.find_element('xpath', '//*[@id="lbl_operationBy_1_emission"]').text
+            duration_departure = self.driver.find_element('xpath', '//*[@id="lbl_duration_1_emission"]').text
             if len(str(duration_departure)) > 1:
                 website_data['duration_departure'] = duration_departure
             
@@ -114,35 +114,29 @@ class VoeGolBot():
         return {}
 
 
-    # Finish
     def create_message_telegram(self, data_telegram: dict) -> str:
         """ Set up message to be sent to Telegram groups """
 
         try:
             message = f"{EMOJIS['botHead']} Olá. Seguem dados da passagem aérea:\n\n"
-            message += f"{EMOJIS['airPlane']} Companhia Aérea:   {data_telegram['company']}\n"
+            message += f"{EMOJIS['airPlane']} Companhia Aérea Ida:   {data_telegram['company']}\n"
             message += f"{EMOJIS['earthGlobeAmericas']} Origem:   {data_telegram['origem']}\n"
-            message += f"{EMOJIS['earthGlobeAfrica']} Destino:   {data_telegram['destino']}\n"
-            message += f"{EMOJIS['moneyBag']} Valor ida:   {data_telegram['valor_ida']}\n"
-
-            message += f"{EMOJIS['moneyBag']} Valor volta:   {data_telegram['valor_volta']}\n"
-            message += f"{EMOJIS['checkMark']} Valor Total:   {data_telegram['valor_total']}\n\n"
-
             message += f"{EMOJIS['calendar']} Ida:  {data_telegram['data_ida'].strftime('%d/%m/%Y')}\n"
+            message += f"{EMOJIS['moneyBag']} Valor ida:   {data_telegram['valor_ida']}\n"
             message += f"{EMOJIS['wallClock']} Hora de Saída:   {data_telegram['ida_hora_saida']} hrs\n"   
             message += f"{EMOJIS['wallClock']} Hora de Chegada:   {data_telegram['ida_hora_chegada']} hrs\n"
             message += f"{EMOJIS['sandGlass']} Duração do Voo:   {data_telegram['ida_duracao']}\n"
-            message += f"{EMOJIS['coffeeMug']} {data_telegram['tipo_voo']}\n\n"
+            message += f"{EMOJIS['coffeeMug']} Paradas: {data_telegram['tipo_voo']}\n\n"
+            message += f"{EMOJIS['airPlane']} Companhia Aérea Volta:  {data_telegram['company_return']}\n"
+            message += f"{EMOJIS['earthGlobeAfrica']} Destino:   {data_telegram['destino']}\n"
             message += f"{EMOJIS['calendar']} Volta:  {data_telegram['data_volta'].strftime('%d/%m/%Y')}\n"
-
+            message += f"{EMOJIS['moneyBag']} Valor volta:   {data_telegram['valor_volta']}\n"
             message += f"{EMOJIS['wallClock']} Hora de Saída:   {data_telegram['volta_hora_saida']} hrs\n"
-
             message += f"{EMOJIS['wallClock']} Hora de Chegada:   {data_telegram['volta_hora_chegada']} hrs\n"
-
-            message += f"{EMOJIS['sandGlass']} Duração do Voo:   {data_telegram['volta_Duracao']}\n"
-
-            message += f"{EMOJIS['coffeeMug']} Paradas:   {data_telegram['volta_parada']}\n"
-
+            message += f"{EMOJIS['sandGlass']} Duração do Voo:   {data_telegram['volta_duracao']}\n"
+            message += f"{EMOJIS['coffeeMug']} Paradas:   {data_telegram['volta_tipo']}\n"
+            message += f"\n"
+            message += f"{EMOJIS['checkMark']} Valor Total:   {data_telegram['valor_total']}\n\n"
             message += f"{EMOJIS['earthGlobeEuropeAfrica']} Link: {data_telegram['link_ticket']}"
         except:
             funcs.display_error()
@@ -150,22 +144,28 @@ class VoeGolBot():
         return message
 
 
-    def insert_data_homepage(self, data_insert) -> Tuple[bool, datetime]:
-        """ Insert data into home page to search for tickets """
+    def close_popup(self) -> None:
+        """ Close ad pop-up """
 
-        def close_popup():
-            """ Close ad pop-up """
-
+        try:
+            self.driver.find_element('xpath', '/html/body/div[10]/div[2]/div/div[1]/button').click()
+            print('Closed pop-up')
+        except:
             try:
-                self.driver.find_element('xpath', '/html/body/div[10]/div[2]/div/div[1]/button').click()
+                self.driver.find_element('xpath', '/html/body/div[8]/div[2]/div/div[1]/button').click()
                 print('Closed pop-up')
             except:
                 pass
 
+
+    def insert_data_homepage(self, data_insert) -> Tuple[bool, datetime]:
+        """ Insert data into home page to search for tickets """
+
+
         for _ in range(7):
             try:
                 # Insert origin
-                close_popup()
+                self.close_popup()
                 WebDriverWait(self.driver, 25).until(EC.element_to_be_clickable((By.XPATH, xpaths['input_origin'])))
                 self.driver.find_element('xpath', xpaths['input_origin']).clear()
                 self.driver.find_element('xpath', xpaths['input_origin']).send_keys(data_insert['str_origin'])
@@ -176,7 +176,7 @@ class VoeGolBot():
                     print(f'Origin {data_insert["str_origin"]} not found')
                     return False
                 self.driver.find_element('xpath', '//*[@id="dropdown-saindo-de"]/b2c-list-cta/div/ul/li').click()
-                close_popup()
+                self.close_popup()
 
 
                 # Insert destination
@@ -190,23 +190,37 @@ class VoeGolBot():
                     return False
                 self.driver.find_element('xpath', '//*[@id="dropdown-indo-para"]/b2c-list-cta/div/ul/li').click()
                 print(f'Trip has been set up')
-                close_popup()
+                self.close_popup()
 
+                date_departure = data_insert["date_departure"]
+                date_return = data_insert['date_return_datetime']
 
-                # Insert departure date
                 self.driver.find_element('xpath', xpaths['date_departure_click']).click()
                 p.sleep(1)
-                WebDriverWait(self.driver, 15).until(EC.element_to_be_clickable((By.XPATH, f'//*[@id="departureDate{data_insert["date_departure"]}"]')))
-                p.sleep(1.5)
-                self.driver.find_element('xpath', f'//*[@id="departureDate{data_insert["date_departure"]}"]').click()
-                print(f'Selected date {data_insert["date_departure_datetime"].strftime("%d/%m/%Y")}')
-                p.sleep(2)
-                close_popup()
+                
+                # Insert departure date
+                for i in range(20):
+                    self.close_popup()
+                    try:
+                        if i != 0:
+                            date_departure += timedelta(days=i)
+                            if date_departure == (date_return - timedelta(days=1)) or date_departure == (date_return - timedelta(days=2)):
+                                date_return += timedelta(days=(i + 1))
+                            p.sleep(1)
+
+                        WebDriverWait(self.driver, 15).until(EC.element_to_be_clickable((By.XPATH, f'//*[@id="departureDate{date_departure.strftime("%d%m%Y")}"]')))
+                        p.sleep(1.5)
+                        self.driver.find_element('xpath', f'//*[@id="departureDate{date_departure.strftime("%d%m%Y")}"]').click()
+                        print(f'Selected date {date_departure.strftime("%d/%m/%Y")}')
+                        p.sleep(2)
+                        self.close_popup()
+                        break
+                    except:
+                        print_yellow(f'Departure Date {date_departure.strftime("%d/%m/%Y")} not found')
 
                 # Insert return date
-                date_return = data_insert['date_return_datetime']
                 for i in range(20):
-                    close_popup()
+                    self.close_popup()
                     try:
                         if i != 0:
                             date_return += timedelta(days=i)
@@ -214,23 +228,24 @@ class VoeGolBot():
 
                         WebDriverWait(self.driver, 5).until(EC.element_to_be_clickable((By.XPATH, f'//*[@id="returnDate{date_return.strftime("%d%m%Y")}"]')))
                         p.sleep(0.5)  
-                        close_popup()
+                        self.close_popup()
                         self.driver.find_element('xpath', f'//*[@id="returnDate{date_return.strftime("%d%m%Y")}"]').click()
                         p.sleep(0.5)
-                        close_popup()
+                        self.close_popup()
                         self.driver.find_element('xpath', '//*[@id="datePicker-returnDate"]/b2c-calendar/div/div[3]/div[1]/div[2]').click()
                         print(f'Selected date {date_return.strftime("%d/%m/%Y")}')
-                        close_popup()
-                        return True, date_return
+                        self.close_popup()
+                        return True, date_departure, date_return
                     except:
-                        print_yellow(f'Date {date_return.strftime("%d/%m/%Y")} not found')
+                        print_yellow(f'Return Date {date_return.strftime("%d/%m/%Y")} not found')
                 
-                return False, date_return
+                return False, date_departure, date_return
             except (KeyboardInterrupt, SystemExit):
                 quit()
             except:
                 funcs.display_error()
-                close_popup()
+                self.driver.refresh()
+                p.sleep(2)
                 
 
     def click_accept_cookies(self):
@@ -239,7 +254,38 @@ class VoeGolBot():
             self.driver.find_element('xpath', ' //*[@id="onetrust-accept-btn-handler"]').click()
             print_green('cliked accept cookies and close')
         except: 
-            print_red('accept cookies btn not found')
+            # print_red('accept cookies btn not found')
+            pass
+
+
+    def get_total_value(self, value_1, value_2) -> float:
+        """ Return the sum of both tickets' values """
+
+        value_1 = value_1.replace('.', '')
+        value_1 = float(str(value_1).replace(',', '.').replace('R$', '').strip()) 
+        value_2 = value_2.replace('.', '')
+        value_2 = float(str(value_2).replace(',', '.').replace('R$', '').strip()) 
+        result = (value_1 + value_2)
+        formatted_result = '{:,.2f}'.format(result)
+        formatted_result = formatted_result.replace('.', ',', 1)
+        print(f'Sum of both tickets: {formatted_result}')
+        return formatted_result
+
+
+    def build_driver(self):
+        """ Chrome / driver config """
+
+        path_chrome = r'..\\driver_web\\chromedriver.exe'
+        service = Service(executable_path=path_chrome)
+        options = webdriver.ChromeOptions()
+        options.add_argument('--disable-infobars')
+        options.add_argument('--start-maximized')
+        options.add_argument('--disable-extensions')
+        options.add_argument('--disable=popup-block')
+        options.add_argument('--no-defaut-browser-check')
+        options.add_argument('--force-device-scale-factor=0.8')
+        # options.add_argument('--headless')
+        self.driver = webdriver.Chrome(service=service, options=options)
 
 
     # Finish
@@ -257,7 +303,7 @@ class VoeGolBot():
 
             for key_index, data_trip_lst in DESTS_NATIONAL.items():
                 data_insert = {
-                    'date_departure': date_departure.strftime("%d%m%Y"),
+                    'date_departure': date_departure,
                     'date_departure_datetime': date_departure,
                     'date_return_datetime': date_return,
                     'str_origin': data_trip_lst[0],
@@ -277,9 +323,11 @@ class VoeGolBot():
                     self.click_accept_cookies()
 
                     # Insert data
-                    inserted, date_return = self.insert_data_homepage(data_insert)
+                    inserted, date_departure, date_return = self.insert_data_homepage(data_insert)
                     if not inserted:
                         continue
+
+                    print(f'Found trip with dates {date_departure}, {date_return}')
                     
                     data_telegram = {
                         'origem': data_trip_lst[0],
@@ -294,7 +342,7 @@ class VoeGolBot():
                     while counter < 80:
                         counter += 1
                         time.sleep(1)
-                        print(f'{counter} - Searching for tickets')
+                        print(f'Searching for tickets {counter}')
 
                         try:
                             self.driver.find_element('xpath', '//*[@id="btn_searchFlights_emission"]').click()
@@ -308,17 +356,27 @@ class VoeGolBot():
                         if len(data_site) > 0:
                             self.display_data(data_site)
                             cash_limit: float = data_trip_lst[2]
-
-                            if self.validate_total_budget(data_site['value_departure'], cash_limit):
+                            
+                            if True:
+                            # if self.validate_total_budget(data_site['value_departure'], cash_limit):
                                 data_telegram['valor_ida'] = data_site['value_departure']
                                 data_telegram['ida_hora_saida'] = data_site['time_departure']
                                 data_telegram['ida_hora_chegada'] = data_site['time_arrival']
                                 data_telegram['ida_duracao'] = data_site['duration_departure']
                                 data_telegram['tipo_voo'] = data_site['type_flight']
+                                data_telegram['company'] = data_site['company']
                                 departure_is_valid = True
                             break
                         else:
                             print_yellow('No data found')
+
+                        try:
+                            text = self.driver.find_element('xpath', '/html/body/app-root/b2c-flow/main/b2c-select-flight/section/div/b2c-message/div[1]/h2/span/p').text
+                            print_yellow(f'Achou mensagem {text}')
+                            departure_is_valid = False
+                            break
+                        except:
+                            pass
                     
                     # if not departure_is_valid:
                     #     continue
@@ -335,26 +393,57 @@ class VoeGolBot():
                     print('Clicked on return flight btn')
                     
                     # Extract destination data
+                    return_is_valid = False
                     data_site_2 = {}
                     for i in range(15):
                         try:
                             data_site_2 = self.get_data_trip()
-                            if len(data_site_2):
+                            if len(data_site_2) > 0:
+                                self.display_data(data_site_2)
+                                cash_limit: float = data_trip_lst[2]
+
+                                if True:
+                                # if self.validate_total_budget(data_site_2['value_departure'], cash_limit):
+                                    data_telegram['valor_volta'] = data_site_2['value_departure']
+                                    data_telegram['volta_hora_saida'] = data_site_2['time_departure']
+                                    data_telegram['volta_hora_chegada'] = data_site_2['time_arrival']
+                                    data_telegram['volta_duracao'] = data_site_2['duration_departure']
+                                    data_telegram['volta_tipo'] = data_site_2['type_flight']
+                                    data_telegram['company_return'] = data_site_2['company']
+                                    return_is_valid = True
                                 break
+                            else:
+                                print_yellow('No return data found')
                         except:
                             print(f'({i}) - searching for return data')   
 
-                    ####################################################
-                    p.alert(f'departure_is_valid = {data_site_2}')
-                    ####################################################
+                    # if not return_is_valid:
+                    #     continue
 
-                    self.driver.find_element('xpath', '/html/body/app-root/b2c-flow/main/b2c-select-flight/section/div/section/form/div[1]').click()
-                    print('Clicked departure ticket found')
+                    # Sum both tickets' price
+                    total_value = self.get_total_value(
+                        value_1=data_site['value_departure'],
+                        value_2=data_site_2['value_departure']
+                    )
 
-                    input('next')
+                    # if self.validate_total_budget(total_value, cash_limit):
+                    if True:
+                        # Add missing data
+                        data_telegram['valor_total'] = total_value
+                        data_telegram['link_ticket'] = self.driver.current_url
+                    
+                        # Send message to Telegram
+                        bot_message = self.create_message_telegram(data_telegram)
 
-                    # Verify values and send message
+                        ####################################
+                        p.alert(f'{bot_message}')
+                        ####################################
 
+                        bot.send_message_to_group(json_data['channelNacional'], bot_message)
+                        continue
+
+                    data_telegram = {}
+                    continue    
 
                 except (KeyboardInterrupt, SystemExit):
                     quit()
@@ -364,24 +453,6 @@ class VoeGolBot():
                     ############
                     p.alert(err)
                     ############
-
-
-    def build_driver(self):
-        """ Chrome / driver config """
-
-        path_chrome = r'..\\driver_web\\chromedriver.exe'
-        service = Service(executable_path=path_chrome)
-
-        options = webdriver.ChromeOptions()
-        options.add_argument('--disable-infobars')
-        options.add_argument('--start-maximized')
-        options.add_argument('--disable-extensions')
-        options.add_argument('--disable=popup-block')
-        options.add_argument('--no-defaut-browser-check')
-        options.add_argument('--force-device-scale-factor=0.8')
-        # options.add_argument('--headless')
-        
-        self.driver = webdriver.Chrome(service=service, options=options)
 
 
 if __name__ == '__main__':

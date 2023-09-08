@@ -24,6 +24,7 @@ def hello_friend(message):
 def send_message_to_group(group_id, message):
     try:
         bot.send_message(group_id, message)
+        print('Message sent via telegram bot')
     except:
         func.display_error()
 

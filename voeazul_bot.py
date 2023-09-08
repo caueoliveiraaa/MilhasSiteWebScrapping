@@ -33,7 +33,10 @@ class VoeAzulBot():
         except:
             funcs.display_error()
         finally:
-            self.driver.close()
+            try:
+                self.driver.close()
+            except:
+                funcs.display_error()
 
 
     def display_data(self, data: dict) -> None:
@@ -88,8 +91,6 @@ class VoeAzulBot():
             try:
                 self.driver.find_element('xpath', xpaths['departure_input']).clear()
                 self.driver.find_element('xpath', xpaths['departure_input']).send_keys('GRU')
-
-
 
                 break
             except:
@@ -164,21 +165,21 @@ class VoeAzulBot():
             funcs.display_error()
 
 
-    def build_driver(self):
+    def build_driver(self) -> None:
         """ Chrome / driver config """
 
         path_chrome = r'..\\driver_web\\chromedriver.exe'
         service = Service(executable_path=path_chrome)
         options = webdriver.ChromeOptions()
-        options.add_argument('--disable-infobars')
+        # gecko_driver_path = r'..\\driver_web\\geckodriver.exe'
+        # options.add_argument('--disable-infobars')
         options.add_argument('--start-maximized')
-        options.add_argument('--disable-extensions')
+        # options.add_argument('--disable-extensions')
         options.add_argument('--disable=popup-block')
         options.add_argument('--no-defaut-browser-check')
         options.add_argument('--force-device-scale-factor=0.9')
         # options.add_argument('--headless')
         self.driver = webdriver.Chrome(service=service, options=options)
-
 
 if __name__ == '__main__':
     bot = VoeAzulBot()
