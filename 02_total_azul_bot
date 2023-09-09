@@ -1,0 +1,307 @@
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.remote.webdriver import WebDriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.service import Service
+from selenium import webdriver
+
+from destinations import NOMES_SIGLAS
+from destinations_miles import NATIONAL_MILES
+from general import GeneralFuncs as funcs
+from voeazul_bot_xpaths import xpaths
+from emojis import EMOJIS
+import telegram_bot as bot 
+from print_colors import *
+
+from datetime import datetime, timedelta
+from typing import Tuple
+import pyautogui as p
+import os
+import time
+import json
+import sys
+
+
+class TotalAzulBot():
+    def __init__(self) -> None:
+        """ Handle driver and run bot """
+
+        try:
+            self.build_driver()
+            self.main()
+        except:
+            funcs.display_error()
+        finally:
+            try:
+                self.driver.close()
+            except:
+                funcs.display_error()
+
+
+    def display_data(self, data: dict) -> None:
+        """ Display data found in terminal"""
+
+        if data:
+            print_cyan(f'{EMOJIS["checkMark"]} Extracted data: ')
+            for key, value in data.items(): print_green(f'"{key}": "{value}"')
+
+
+    def get_json_data(self) -> dict:
+        json_data: dict = {}
+        with open('bot_info.json', 'r') as json_file:
+            json_data = json.load(json_file)
+
+        return json_data
+    
+
+    def validate_total_budget(self, total_value: str, limit_value: float) -> bool:
+        """ Check if value found is lower than verification value """
+
+        total_value = str(total_value).replace('.', '').strip()
+        total_value = int(total_value)
+        print(f'\033[035mR$ {total_value} less than or equal to R$ {limit_value}: \033[0m', end=' ')
+        print_cyan(f'{(total_value <= limit_value)}') if (total_value <= limit_value) else print_red(f'{(total_value <= limit_value)}')
+        return (total_value <= limit_value)
+
+
+    def get_total_value(self, value_1, value_2) -> float:
+        """ Return the sum of both tickets' values """
+
+        value_1 = value_1.replace('.', '')
+        value_1 = int(value_1)
+        value_2 = value_2.replace('.', '')
+        value_2 = int(value_2)
+        return (value_1 + value_2)
+    
+
+    def create_message_telegram(self, data_telegram: dict) -> str:
+        """ Set up message to be sent to Telegram groups """
+
+        try:
+            message = f"{EMOJIS['botHead']} Olá. Seguem dados da passagem aérea:\n\n"
+            message += f"{EMOJIS['airPlane']} Companhia Aérea Ida:   {data_telegram['company']}\n"
+            message += f"{EMOJIS['earthGlobeAmericas']} Origem:   {data_telegram['origem']}\n"
+            message += f"{EMOJIS['calendar']} Ida:  {data_telegram['data_ida']}\n"
+            message += f"{EMOJIS['moneyBag']} Milhas ida:   {data_telegram['milhas_ida']}\n"
+            message += f"{EMOJIS['wallClock']} Hora de Saída:   {data_telegram['ida_hora_saida']} hrs\n"   
+            message += f"{EMOJIS['wallClock']} Hora de Chegada:   {data_telegram['ida_hora_chegada']} hrs\n"
+            message += f"{EMOJIS['sandGlass']} Duração do Voo:   {data_telegram['ida_duracao']}\n"
+            message += f"{EMOJIS['coffeeMug']} Paradas: {data_telegram['tipo_voo']}\n\n"
+            message += f"{EMOJIS['airPlane']} Companhia Aérea Volta:  {data_telegram['company_return']}\n"
+            message += f"{EMOJIS['earthGlobeAfrica']} Destino:   {data_telegram['destino']}\n"
+            message += f"{EMOJIS['calendar']} Volta:  {data_telegram['data_volta']}\n"
+            message += f"{EMOJIS['moneyBag']} Milhas volta:   {data_telegram['milhas_volta']}\n"
+            message += f"{EMOJIS['wallClock']} Hora de Saída:   {data_telegram['volta_hora_saida']} hrs\n"
+            message += f"{EMOJIS['wallClock']} Hora de Chegada:   {data_telegram['volta_hora_chegada']} hrs\n"
+            message += f"{EMOJIS['sandGlass']} Duração do Voo:   {data_telegram['volta_duracao']}\n"
+            message += f"{EMOJIS['coffeeMug']} Paradas:   {data_telegram['volta_tipo']}\n\n"
+            message += f"{EMOJIS['moneyBag']} Milhas total:   {data_telegram['miles_total']}\n"
+            message += f"{EMOJIS['earthGlobeEuropeAfrica']} Link: {data_telegram['link_ticket']}"
+            return message
+        except:
+            funcs.display_error()
+
+
+    def delete_via_actions(self):
+        actions = ActionChains(self.driver)
+        for i in range(50):
+            actions.send_keys(Keys.BACKSPACE)
+            actions.send_keys(Keys.DELETE)
+        actions.perform()
+
+
+    def select_via_actions(self):
+        actions = ActionChains(self.driver)
+        actions.send_keys(Keys.DOWN)
+        actions.send_keys(Keys.ENTER)
+        actions.perform()
+
+
+    def insert_data_into_page(self, data_insert) -> bool:
+        for i in range(5):
+            try:
+                # inform origin
+                WebDriverWait(self.driver, 15).until(EC.element_to_be_clickable((By.XPATH, f'//*[@id="trip-searcher-_ctl1__ctl1__ctl1_pageBody_pageBody_searcher_ctlMultiSearcher__ctl1_ctlZoneSelectorOrigin-input"]')))
+                self.driver.find_element('xpath', f'//*[@id="trip-searcher-_ctl1__ctl1__ctl1_pageBody_pageBody_searcher_ctlMultiSearcher__ctl1_ctlZoneSelectorOrigin-input"]').send_keys(data_insert['str_origin'])
+                WebDriverWait(self.driver, 15).until(EC.element_to_be_clickable((By.XPATH, f'//*[@id="trip-searcher"]/div[2]/div[1]/div[1]/div[1]/div/span[2]/div')))
+                self.select_via_actions()
+
+                # inform destination
+                WebDriverWait(self.driver, 15).until(EC.element_to_be_clickable((By.XPATH, f'//*[@id="trip-searcher-_ctl1__ctl1__ctl1_pageBody_pageBody_searcher_ctlMultiSearcher__ctl1_ctlZoneSelectorHotelDestination-input"]')))
+                self.driver.find_element('xpath', f'//*[@id="trip-searcher-_ctl1__ctl1__ctl1_pageBody_pageBody_searcher_ctlMultiSearcher__ctl1_ctlZoneSelectorHotelDestination-input"]').send_keys(data_insert['str_destination'])
+                WebDriverWait(self.driver, 15).until(EC.element_to_be_clickable((By.XPATH, f'//*[@id="trip-searcher"]/div[2]/div[1]/div[1]/div[2]/div/span[2]/div/div/div[1]')))
+                self.select_via_actions()
+                print('Informed trip')
+
+                # inform departure date
+                WebDriverWait(self.driver, 15).until(EC.element_to_be_clickable((By.XPATH, f'//*[@id="trip-searcher-_ctl1__ctl1__ctl1_pageBody_pageBody_searcher_ctlMultiSearcher__ctl1_ctlDateSelector-start-date-input"]')))
+                p.sleep(0.5)
+                self.driver.find_element('xpath', f'//*[@id="trip-searcher-_ctl1__ctl1__ctl1_pageBody_pageBody_searcher_ctlMultiSearcher__ctl1_ctlDateSelector-start-date-input"]').clear()
+                p.sleep(0.5)
+                self.driver.find_element('xpath', f'//*[@id="trip-searcher-_ctl1__ctl1__ctl1_pageBody_pageBody_searcher_ctlMultiSearcher__ctl1_ctlDateSelector-start-date-input"]').send_keys(data_insert['date_departure'].strftime('%d/%m/%Y'))
+
+                # inform return date
+                WebDriverWait(self.driver, 15).until(EC.element_to_be_clickable((By.XPATH, f'//*[@id="trip-searcher-_ctl1__ctl1__ctl1_pageBody_pageBody_searcher_ctlMultiSearcher__ctl1_ctlDateSelector-end-date-input"]')))
+                p.sleep(0.5)
+                self.driver.find_element('xpath', f'//*[@id="trip-searcher-_ctl1__ctl1__ctl1_pageBody_pageBody_searcher_ctlMultiSearcher__ctl1_ctlDateSelector-end-date-input"]').clear()
+                p.sleep(0.5)
+                self.driver.find_element('xpath', f'//*[@id="trip-searcher-_ctl1__ctl1__ctl1_pageBody_pageBody_searcher_ctlMultiSearcher__ctl1_ctlDateSelector-end-date-input"]').send_keys(data_insert['date_return'].strftime('%d/%m/%Y'))
+                print('Informed dates')
+
+                # search
+                self.driver.find_element('xpath', f'//*[@id="trip-searcher"]/div[2]/div[3]/button').click()
+                print('Clicked search btn')
+               
+                return True
+            except:
+                p.sleep(2)
+                funcs.display_error()
+
+        return False
+
+
+    def get_data_from_current_page(self) -> dict:
+        """ Extract trip data from current departure/return page """
+
+        found_data = False
+        data_extracted = {}
+
+        for i in range(60):
+            print(f'Searching for results {i + 1}')
+            p.sleep(2)
+
+            try:
+                text = self.driver.find_element('xpath', f'//*[@id="results-list"]/div[2]/div').text
+
+                if 'Não há pacotes' in text:
+                    print_yellow('No tickets for this trip')
+                    return data_extracted, found_data
+                
+                p.alert(text)
+
+                departure_times = self.driver.find_element('xpath', f'//*[@id="main-content"]/div/div[2]/div[1]/div/div/div/article/section[1]/div/div[1]/div[1]/div[1]/div[1]/div[1]').text
+                return_times = self.driver.find_element('xpath', f'//*[@id="main-content"]/div/div[2]/div[1]/div/div/div/article/section[1]/div/div[1]/div[1]/div[1]/div[2]/div[1]').text
+
+            except:
+                pass
+
+            
+        return data_extracted, found_data
+
+
+    @funcs.measure_time
+    def main(self) -> None:
+        """ Run main script bot """
+        os.system('cls')
+
+        try:
+            for index_main in range(1, 366):
+                # search dates
+                date_departure = datetime.now() + timedelta(days=index_main)
+                date_return = datetime.now() + timedelta(days=(index_main + 7))
+
+                try:
+                    for key_index, value in NATIONAL_MILES.items():
+                        data_insert = {
+                            'date_departure': date_departure,
+                            'date_return': date_return,
+                            'str_origin': value[0],
+                            'str_destination': value[1],
+                        }
+
+                        print(f'\n{key_index + 1}º iteration with dates ', end=' ')
+                        print(f'{date_departure.strftime("%d/%m/%Y")}', end=' ')
+                        print(f'and {date_return.strftime("%d/%m/%Y")}')
+                        print(f'Trip: {value[0]} -> {value[1]}')
+                        miles_limit: int = value[2]
+
+                        try:
+                            base_url = "https://tudoazul.azulviagens.com.br/"
+                            self.driver.get(base_url)
+
+                            if self.insert_data_into_page(data_insert):
+
+                                data_extracted, found_data = self.get_data_from_current_page()
+
+                                if found_data:
+
+                                    input('here')
+
+
+
+                            # data_telegram = {
+                            #     'company': data_extracted_departure['company'],
+                            #     'origem': data_insert['str_origin'],
+                            #     'data_ida': data_insert['date_departure'].strftime("%d/%m/%Y"),
+                            #     'milhas_ida': data_extracted_departure['miles'],
+                            #     'ida_hora_saida': data_extracted_departure['departure_time'],
+                            #     'ida_hora_chegada': data_extracted_departure['return_time'],
+                            #     'ida_duracao': data_extracted_departure['duration'],
+                            #     'tipo_voo': data_extracted_departure['type_trip'],
+                            #     'company_return': data_extracted_return['company'],
+                            #     'destino': data_insert['str_destination'],
+                            #     'data_volta': data_insert['date_return'].strftime("%d/%m/%Y"),
+                            #     'milhas_volta': data_extracted_return['miles'],
+                            #     'volta_hora_saida': data_extracted_return['departure_time'],
+                            #     'volta_hora_chegada': data_extracted_return['return_time'],
+                            #     'volta_duracao': data_extracted_return['duration'],
+                            #     'volta_tipo': data_extracted_return['type_trip'],
+                            #     'link_ticket': self.driver.current_url,
+                            # }
+
+                            #############################################
+                            # p.alert(f'data_telegram {data_telegram}')
+                            #############################################
+
+                            continue
+                            # Send message to Telegram
+                            bot_message = self.create_message_telegram(data_telegram)
+                            ####################################
+                            p.alert(f'{bot_message}')
+                            ####################################
+                            bot.send_message_to_group(json_data['channelNacional'], bot_message)
+
+                        except (KeyboardInterrupt, SystemExit):
+                            exit()
+                        except:     
+                            err = funcs.display_error()
+
+                            p.alert(f'2 - {err}')
+
+                except (KeyboardInterrupt, SystemExit):
+                    exit()
+                except:     
+                    err = funcs.display_error()
+
+                    p.alert(f'2 - {err}')
+
+        except (KeyboardInterrupt, SystemExit):
+            print('Exited program')
+            exit()
+        except:
+            err = funcs.display_error()
+
+            p.alert(f'2 - {err}')
+
+
+    def build_driver(self) -> None:
+        """ Chrome / driver config """
+
+        path_chrome = r'..\\driver_web\\chromedriver.exe'
+        service = Service(executable_path=path_chrome)
+        options = webdriver.ChromeOptions()
+        # gecko_driver_path = r'..\\driver_web\\geckodriver.exe'
+        options.add_argument('--disable-infobars')
+        options.add_argument('--start-maximized')
+        options.add_argument('--disable-extensions')
+        options.add_argument('--disable=popup-block')
+        options.add_argument('--no-defaut-browser-check')
+        options.add_argument('--force-device-scale-factor=0.6')
+        # options.add_argument('--headless')
+        self.driver = webdriver.Chrome(service=service, options=options)
+
+
+if __name__ == '__main__':
+    bot = TotalAzulBot()
