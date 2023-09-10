@@ -125,7 +125,7 @@ class TotalAzulBot():
 
     def select_via_actions(self):
         actions = ActionChains(self.driver)
-        actions.send_keys(Keys.DOWN)
+        # actions.send_keys(Keys.DOWN)
         actions.send_keys(Keys.ENTER)
         actions.perform()
 
@@ -133,41 +133,55 @@ class TotalAzulBot():
     def insert_data_into_page(self, data_insert) -> bool:
         for i in range(5):
             try:
+                # click options of payment
+                WebDriverWait(self.driver, 15).until(EC.element_to_be_clickable((By.XPATH, f'//*[@id="main"]/div[1]/div/div/div[2]/div/div/div/div/div/div/div/div[2]/div[1]/div[1]/div/div/div/div/div/i')))
+                self.driver.find_element('xpath', f'//*[@id="main"]/div[1]/div/div/div[2]/div/div/div/div/div/div/div/div[2]/div[1]/div[1]/div/div/div/div/div/i').click()
+                p.sleep(0.2)
+                actions = ActionChains(self.driver)
+                actions.send_keys(Keys.UP)
+                actions.send_keys(Keys.UP)
+                actions.send_keys(Keys.ENTER)
+                actions.perform()
+                print('Selected points')
+
                 # inform origin
-                WebDriverWait(self.driver, 15).until(EC.element_to_be_clickable((By.XPATH, f'//*[@id="trip-searcher-_ctl1__ctl1__ctl1_pageBody_pageBody_searcher_ctlMultiSearcher__ctl1_ctlZoneSelectorOrigin-input"]')))
-                self.driver.find_element('xpath', f'//*[@id="trip-searcher-_ctl1__ctl1__ctl1_pageBody_pageBody_searcher_ctlMultiSearcher__ctl1_ctlZoneSelectorOrigin-input"]').send_keys(data_insert['str_origin'])
-                WebDriverWait(self.driver, 15).until(EC.element_to_be_clickable((By.XPATH, f'//*[@id="trip-searcher"]/div[2]/div[1]/div[1]/div[1]/div/span[2]/div')))
+                WebDriverWait(self.driver, 15).until(EC.element_to_be_clickable((By.XPATH, f'//*[@id="flights-booking-id-1-input"]')))
+                self.driver.find_element('xpath', f'//*[@id="flights-booking-id-1-input"]').send_keys(data_insert['str_origin'])
                 self.select_via_actions()
+                print('Informed trip origin')
 
                 # inform destination
-                WebDriverWait(self.driver, 15).until(EC.element_to_be_clickable((By.XPATH, f'//*[@id="trip-searcher-_ctl1__ctl1__ctl1_pageBody_pageBody_searcher_ctlMultiSearcher__ctl1_ctlZoneSelectorHotelDestination-input"]')))
-                self.driver.find_element('xpath', f'//*[@id="trip-searcher-_ctl1__ctl1__ctl1_pageBody_pageBody_searcher_ctlMultiSearcher__ctl1_ctlZoneSelectorHotelDestination-input"]').send_keys(data_insert['str_destination'])
-                WebDriverWait(self.driver, 15).until(EC.element_to_be_clickable((By.XPATH, f'//*[@id="trip-searcher"]/div[2]/div[1]/div[1]/div[2]/div/span[2]/div/div/div[1]')))
+                WebDriverWait(self.driver, 15).until(EC.element_to_be_clickable((By.XPATH, f'//*[@id="flights-booking-id-2-input"]')))
+                self.driver.find_element('xpath', f'//*[@id="flights-booking-id-2-input"]').send_keys(data_insert['str_destination'])
                 self.select_via_actions()
-                print('Informed trip')
+                print('Informed trip destination')
+
+                # open dates
+                self.driver.find_element('xpath', f'//*[@id="headlessui-popover-button-16"]/div/div/div/div/div/div').click()
+                p.sleep(0.7)
 
                 # inform departure date
-                WebDriverWait(self.driver, 5).until(EC.element_to_be_clickable((By.XPATH, f'//*[@id="trip-searcher-_ctl1__ctl1__ctl1_pageBody_pageBody_searcher_ctlMultiSearcher__ctl1_ctlDateSelector-start-date-input"]')))
-                p.sleep(0.5)
-                self.driver.find_element('xpath', f'//*[@id="trip-searcher-_ctl1__ctl1__ctl1_pageBody_pageBody_searcher_ctlMultiSearcher__ctl1_ctlDateSelector-start-date-input"]').clear()
-                self.driver.find_element('xpath', f'//*[@id="trip-searcher-_ctl1__ctl1__ctl1_pageBody_pageBody_searcher_ctlMultiSearcher__ctl1_ctlDateSelector-start-date-input"]').clear()
-                p.sleep(0.5)
-                self.driver.find_element('xpath', f'//*[@id="trip-searcher-_ctl1__ctl1__ctl1_pageBody_pageBody_searcher_ctlMultiSearcher__ctl1_ctlDateSelector-start-date-input"]').send_keys(data_insert['date_departure'].strftime('%d/%m/%Y'))
+                self.driver.find_element('xpath', f'//*[@id="headlessui-popover-panel-18"]/div/div[1]/div[1]/div/div/div/div/div/div/div/input').click()
+                self.delete_via_actions()
+                self.driver.find_element('xpath', f'//*[@id="headlessui-popover-panel-18"]/div/div[1]/div[1]/div/div/div/div/div/div/div/input').send_keys(data_insert['date_departure'].strftime('%d/%m/%Y'))
+                print('Informed first date')
 
                 # inform return date
-                WebDriverWait(self.driver, 5).until(EC.element_to_be_clickable((By.XPATH, f'//*[@id="trip-searcher-_ctl1__ctl1__ctl1_pageBody_pageBody_searcher_ctlMultiSearcher__ctl1_ctlDateSelector-end-date-input"]')))
-                p.sleep(0.5)
-                self.driver.find_element('xpath', f'//*[@id="trip-searcher-_ctl1__ctl1__ctl1_pageBody_pageBody_searcher_ctlMultiSearcher__ctl1_ctlDateSelector-end-date-input"]').clear()
-                self.driver.find_element('xpath', f'//*[@id="trip-searcher-_ctl1__ctl1__ctl1_pageBody_pageBody_searcher_ctlMultiSearcher__ctl1_ctlDateSelector-end-date-input"]').clear()
-                p.sleep(0.5)
-                self.driver.find_element('xpath', f'//*[@id="trip-searcher-_ctl1__ctl1__ctl1_pageBody_pageBody_searcher_ctlMultiSearcher__ctl1_ctlDateSelector-end-date-input"]').send_keys(data_insert['date_return'].strftime('%d/%m/%Y'))
-                print('Informed dates')
+                self.driver.find_element('xpath', f'//*[@id="headlessui-popover-panel-18"]/div/div[1]/div[2]/div/div/div/div/div/div/div/input').click()
+                self.delete_via_actions()
+                self.driver.find_element('xpath', f'//*[@id="headlessui-popover-panel-18"]/div/div[1]/div[2]/div/div/div/div/div/div/div/input').send_keys(data_insert['date_return'].strftime('%d/%m/%Y'))
+                print('Informed second date')
+                p.sleep(0.7)
 
-                # search
-                WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable((By.XPATH, f'//*[@id="trip-searcher"]/div[2]/div[3]/button')))
-                self.driver.find_element('xpath', f'//*[@id="trip-searcher"]/div[2]/div[3]/button').click()
+                # click concluido
+                self.driver.find_element('xpath', f'//*[@id="headlessui-popover-panel-18"]/div/div[3]/div/button[2]').click()
+                print('Clicked concluido btn')
+
+                # click search
+                WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable((By.XPATH, f'//*[@id="main"]/div[1]/div/div/div[2]/div/div/div/div/div/div/div/div[2]/div[2]/div[3]/button')))
+                self.driver.find_element('xpath', f'//*[@id="main"]/div[1]/div/div/div[2]/div/div/div/div/div/div/div/div[2]/div[2]/div[3]/button').click()
                 print('Clicked search btn')
-               
+
                 return True
             except:
                 funcs.display_error()
@@ -199,6 +213,13 @@ class TotalAzulBot():
             p.sleep(2)
 
             try:
+                try:
+                    # click accept all cookies
+                    self.driver.find_element('xpath', f'//*[@id="onetrust-accept-btn-handler"]').click()
+                    print('clicked accept all cookies')
+                except:
+                    pass
+
                 text = self.driver.find_element('xpath', f'//*[@id="results-list"]/div[2]/div').text
                 if 'Não há pacotes' in text:
                     print_yellow('No tickets for this trip')
@@ -255,11 +276,20 @@ class TotalAzulBot():
                 miles_limit: int = value[2]
 
                 try:
-                    base_url = "https://tudoazul.azulviagens.com.br/"
+                    # base_url = "https://tudoazul.azulviagens.com.br/"
+                    base_url = "https://passagens.voeazul.com.br/pt/melhores-ofertas"
                     self.driver.get(base_url)
 
                     if self.insert_data_into_page(data_insert) is True:
+
+                        #########################
+                        p.alert('extract')
+                        #########################
+
+                        # FIX EXTRACTION AND AJUST DATA
+
                         data_extracted, found_data = self.get_data_from_current_page()
+
                         if found_data is True:
                             data_telegram = {
                                 'milhas_pessoa': data_extracted['milhas_ida_pessoal'],
@@ -275,9 +305,6 @@ class TotalAzulBot():
                                 'link_ticket': self.driver.current_url,
                             }
 
-                            # if (self.validate_total_budget(data_telegram['milhas_pessoa'], miles_limit) is True
-                            # or self.validate_total_budget(data_telegram['milhas_pacote'], miles_limit) is True):
-
                             # Send message to Telegram
                             bot_message = self.create_message_telegram(data_telegram)
 
@@ -285,7 +312,14 @@ class TotalAzulBot():
                             p.alert(f'{bot_message}')
                             #########################
 
-                            bot.send_message_to_group(json_data['channelNacional'], bot_message)
+                            if (self.validate_total_budget(data_telegram['milhas_pessoa'], miles_limit) is True
+                            or self.validate_total_budget(data_telegram['milhas_pacote'], miles_limit) is True):
+
+                                #########################
+                                p.alert('send')
+                                #########################
+
+                                bot.send_message_to_group(json_data['channelNacional'], bot_message)
 
                 except (KeyboardInterrupt, SystemExit):
                     exit()
