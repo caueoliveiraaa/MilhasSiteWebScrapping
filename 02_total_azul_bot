@@ -30,32 +30,9 @@ class TotalAzulBot():
         """ Handle driver and run bot """
 
         try:
-            self.build_driver()
             self.main()
         except:
             funcs.display_error()
-        finally:
-            try:
-                self.driver.close()
-            except:
-                funcs.display_error()
-
-
-    def build_driver(self) -> None:
-        """ Chrome / driver config """
-
-        path_chrome = r'..\\driver_web\\chromedriver.exe'
-        service = Service(executable_path=path_chrome)
-        options = webdriver.ChromeOptions()
-        # gecko_driver_path = r'..\\driver_web\\geckodriver.exe'
-        options.add_argument('--disable-infobars')
-        options.add_argument('--start-maximized')
-        options.add_argument('--disable-extensions')
-        options.add_argument('--disable=popup-block')
-        options.add_argument('--no-defaut-browser-check')
-        options.add_argument('--force-device-scale-factor=0.6')
-        # options.add_argument('--headless')
-        self.driver = webdriver.Chrome(service=service, options=options)
 
 
     def display_data(self, data: dict) -> None:
@@ -256,6 +233,20 @@ class TotalAzulBot():
         os.system('cls')
         json_data = self.get_json_data()
 
+        """ Chrome / driver config """
+        path_chrome = r'..\\driver_web\\chromedriver.exe'
+        service = Service(executable_path=path_chrome)
+        options = webdriver.ChromeOptions()
+        # gecko_driver_path = r'..\\driver_web\\geckodriver.exe'
+        options.add_argument('--disable-infobars')
+        options.add_argument('--start-maximized')
+        options.add_argument('--disable-extensions')
+        options.add_argument('--disable=popup-block')
+        options.add_argument('--no-defaut-browser-check')
+        options.add_argument('--force-device-scale-factor=0.6')
+        # options.add_argument('--headless')
+
+
         for index_main in range(1, 185):
             # search dates
             date_departure = datetime.now() + timedelta(days=index_main)
@@ -276,50 +267,52 @@ class TotalAzulBot():
                 miles_limit: int = value[2]
 
                 try:
-                    # base_url = "https://tudoazul.azulviagens.com.br/"
-                    base_url = "https://passagens.voeazul.com.br/pt/melhores-ofertas"
-                    self.driver.get(base_url)
+                    with webdriver.Chrome(service=service, options=options) as driver:
+                        # base_url = "https://tudoazul.azulviagens.com.br/"
+                        self.driver = driver
+                        base_url = "https://passagens.voeazul.com.br/pt/melhores-ofertas"
+                        self.driver.get(base_url)
 
-                    if self.insert_data_into_page(data_insert) is True:
-
-                        #########################
-                        p.alert('extract')
-                        #########################
-
-                        # FIX EXTRACTION AND AJUST DATA
-
-                        data_extracted, found_data = self.get_data_from_current_page()
-
-                        if found_data is True:
-                            data_telegram = {
-                                'milhas_pessoa': data_extracted['milhas_ida_pessoal'],
-                                'milhas_pacote': data_extracted['milhas_ida_pacote'],
-                                'origem': data_insert['str_origin'],
-                                'data_ida': data_insert['date_departure'].strftime("%d/%m/%Y"),
-                                'ida_hora_saida': (data_extracted['ida_hora_saida'] + ' horas'),
-                                'ida_hora_chegada': (data_extracted['ida_hora_chegada'] + ' horas'),
-                                'destino': data_insert['str_destination'],
-                                'data_volta': data_insert['date_return'].strftime("%d/%m/%Y"),
-                                'volta_hora_saida': (data_extracted['volta_hora_saida'] + ' horas'),
-                                'volta_hora_chegada': (data_extracted['volta_hora_chegada'] + ' horas'),
-                                'link_ticket': self.driver.current_url,
-                            }
-
-                            # Send message to Telegram
-                            bot_message = self.create_message_telegram(data_telegram)
+                        if self.insert_data_into_page(data_insert) is True:
 
                             #########################
-                            p.alert(f'{bot_message}')
+                            p.alert('extract')
                             #########################
 
-                            if (self.validate_total_budget(data_telegram['milhas_pessoa'], miles_limit) is True
-                            or self.validate_total_budget(data_telegram['milhas_pacote'], miles_limit) is True):
+                            # FIX EXTRACTION AND AJUST DATA
+
+                            data_extracted, found_data = self.get_data_from_current_page()
+
+                            if found_data is True:
+                                data_telegram = {
+                                    'milhas_pessoa': data_extracted['milhas_ida_pessoal'],
+                                    'milhas_pacote': data_extracted['milhas_ida_pacote'],
+                                    'origem': data_insert['str_origin'],
+                                    'data_ida': data_insert['date_departure'].strftime("%d/%m/%Y"),
+                                    'ida_hora_saida': (data_extracted['ida_hora_saida'] + ' horas'),
+                                    'ida_hora_chegada': (data_extracted['ida_hora_chegada'] + ' horas'),
+                                    'destino': data_insert['str_destination'],
+                                    'data_volta': data_insert['date_return'].strftime("%d/%m/%Y"),
+                                    'volta_hora_saida': (data_extracted['volta_hora_saida'] + ' horas'),
+                                    'volta_hora_chegada': (data_extracted['volta_hora_chegada'] + ' horas'),
+                                    'link_ticket': self.driver.current_url,
+                                }
+
+                                # Send message to Telegram
+                                bot_message = self.create_message_telegram(data_telegram)
 
                                 #########################
-                                p.alert('send')
+                                p.alert(f'{bot_message}')
                                 #########################
 
-                                bot.send_message_to_group(json_data['channelNacional'], bot_message)
+                                if (self.validate_total_budget(data_telegram['milhas_pessoa'], miles_limit) is True
+                                or self.validate_total_budget(data_telegram['milhas_pacote'], miles_limit) is True):
+
+                                    #########################
+                                    p.alert('send')
+                                    #########################
+
+                                    bot.send_message_to_group(json_data['channelNacional'], bot_message)
 
                 except (KeyboardInterrupt, SystemExit):
                     exit()

@@ -29,15 +29,9 @@ class SmilesMilhasBot():
         """ Handle driver and run bot """
 
         try:
-            # self.build_driver()
             self.main()
         except:
             funcs.display_error()
-        # finally:
-            # try:
-            #     self.driver.close()
-            # except:
-            #     funcs.display_error()
 
 
     def get_json_data(self) -> dict:
@@ -234,9 +228,8 @@ class SmilesMilhasBot():
 
                     # options.add_argument('--headless')
                     with webdriver.Chrome(service=service, options=options) as driver:
-                        self.driver = driver
-
                         # Criar url
+                        self.driver = driver
                         departure_date_temp = datetime(date_departure.year, date_departure.month, date_departure.day)
                         departure_timestamp = int(departure_date_temp.timestamp() * 1000)
                         return_date_temp = datetime(date_return.year, date_return.month, date_return.day)
@@ -312,23 +305,6 @@ class SmilesMilhasBot():
                     exit()
                 except:     
                     funcs.display_error()
-
-
-    def build_driver(self) -> None:
-        """ Chrome / driver config """
-
-        path_chrome = r'..\\driver_web\\chromedriver.exe'
-        service = Service(executable_path=path_chrome)
-        options = webdriver.ChromeOptions()
-        # gecko_driver_path = r'..\\driver_web\\geckodriver.exe'
-        options.add_argument('--disable-infobars')
-        options.add_argument('--start-maximized')
-        options.add_argument('--disable-extensions')
-        options.add_argument('--disable=popup-block')
-        options.add_argument('--no-defaut-browser-check')
-        options.add_argument('--force-device-scale-factor=0.6')
-        # options.add_argument('--headless')
-        self.driver = webdriver.Chrome(service=service, options=options)
 
 
 if __name__ == '__main__':
