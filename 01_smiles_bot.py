@@ -22,6 +22,8 @@ import os
 import time
 import json
 import sys
+import threading
+import logging
 
 
 class SmilesMilhasBot():
@@ -29,7 +31,20 @@ class SmilesMilhasBot():
         """ Handle driver and run bot """
 
         try:
-            self.main()
+            # Run main function for different dates
+            thread1 = threading.Thread(target=self.main, args=(1, 50, 10000.0))
+            thread2 = threading.Thread(target=self.main, args=(51, 100, 10000.0))
+            thread3 = threading.Thread(target=self.main, args=(101, 150, 10000.0))
+            thread4 = threading.Thread(target=self.main, args=(150, 199, 10000.0))
+            logging.info("Running thread 1")
+            thread1.start()
+            logging.info("Running thread 2")
+            thread2.start()
+            logging.info("Running thread 3")
+            thread3.start()
+            logging.info("Running thread 4")
+            thread4.start()
+            logging.info("All threads have been executed.")
         except:
             funcs.display_error()
 
@@ -189,18 +204,23 @@ class SmilesMilhasBot():
 
 
     @funcs.measure_time
-    def main(self) -> None:
+    def main(self, range_ini, range_end, extra_limit=0) -> None:
         """ Run main script bot """
 
+        # Get data
         json_data = self.get_json_data()
         os.system('cls')
 
-        for index_main in range(1, 185):
+        for index_main in range(range_ini, range_end):
             # search dates
             date_departure = datetime.now() + timedelta(days=index_main)
             date_return = datetime.now() + timedelta(days=(index_main + 7))
 
             for key_index, value in NATIONAL_MILES.items():
+                # Trip values
+                miles_limit: int = value[2]
+                miles_limit += extra_limit
+
                 data_insert = {
                     'date_departure': date_departure,
                     'date_return': date_return,
@@ -208,11 +228,12 @@ class SmilesMilhasBot():
                     'str_destination': value[1],
                 }
 
-                print(f'\n{index_main}º iteration of 185 with dates: ', end=' ')
+                # Display current loop info
+                print(f'\n{index_main}º iteration of 199 with dates: ', end=' ')
                 print(f'{date_departure.strftime("%d/%m/%Y")}', end=' ')
                 print(f'and {date_return.strftime("%d/%m/%Y")}')
-                print(f'{key_index + 1}º trip of {len(NATIONAL_MILES)}: {value[0]} -> {value[1]}')
-                miles_limit: int = value[2]
+                print(f'{key_index + 1}º trip of {len(NATIONAL_MILES)}: {value[0]} to {value[1]} - ', end=' ')
+                print(f'{miles_limit} miles')
 
                 try:
                     path_chrome = r'..\\driver_web\\chromedriver.exe'
@@ -224,59 +245,105 @@ class SmilesMilhasBot():
                     options.add_argument('--disable-extensions')
                     options.add_argument('--disable=popup-block')
                     options.add_argument('--no-defaut-browser-check')
-                    options.add_argument('--force-device-scale-factor=0.6')
-
+                    options.add_argument('--force-device-scale-factor=0.8')
                     # options.add_argument('--headless')
+
                     with webdriver.Chrome(service=service, options=options) as driver:
                         # Criar url
-                        self.driver = driver
-                        departure_date_temp = datetime(date_departure.year, date_departure.month, date_departure.day)
-                        departure_timestamp = int(departure_date_temp.timestamp() * 1000)
-                        return_date_temp = datetime(date_return.year, date_return.month, date_return.day)
-                        return_timestamp = int(return_date_temp.timestamp() * 1000)
                         base_url = "https://www.smiles.com.br/mfe/emissao-passagem/"
+                        self.driver = driver
+                        departure_date_temp = datetime(
+                            date_departure.year,
+                            date_departure.month,
+                            date_departure.day
+                        )
+
+                        departure_timestamp = int(
+                            (departure_date_temp.timestamp() * 1000)
+                        )
+
+                        return_date_temp = datetime(
+                            date_return.year,
+                            date_return.month,
+                            date_return.day
+                        )
+
+                        return_timestamp = int(
+                            (return_date_temp.timestamp() * 1000)
+                        )
 
                         query_params = {
-                            "adults": 1, "cabin": "ALL", "children": 0,
-                            "departureDate": departure_timestamp, "infants": 0,
-                            "isElegible": False, "isFlexibleDateChecked": False,
-                            "returnDate": return_timestamp, "searchType": "g3",
-                            "segments": 1, "tripType": 1, "originAirport": data_insert['str_origin'],
-                            "originCity": "", "originCountry": "", "originAirportIsAny": False,
-                            "destinationAirport": data_insert['str_destination'], "destinCity": "","destinCountry": "",
-                            "destinAirportIsAny": False, "novo-resultado-voos": True
+                            "adults": 1,
+                            "cabin": "ALL",
+                            "children": 0,
+                            "departureDate": departure_timestamp,
+                            "infants": 0,
+                            "isElegible": False,
+                            "isFlexibleDateChecked": False,
+                            "returnDate": return_timestamp,
+                            "searchType": "g3",
+                            "segments": 1,
+                            "tripType": 1,
+                            "originAirport": data_insert['str_origin'],
+                            "originCity": "",
+                            "originCountry": "",
+                            "originAirportIsAny": False,
+                            "destinationAirport": data_insert['str_destination'],
+                            "destinCity": "",
+                            "destinCountry": "",
+                            "destinAirportIsAny": False,
+                            "novo-resultado-voos": True
                         }
 
                         # Construct the full URL with the updated departure date
-                        website_url = base_url + "?" + "&".join(f"{key}={value}" for key, value in query_params.items())
+                        website_url = base_url + "?" + "&".join(
+                            f"{key}={value}" for key, value in query_params.items()
+                        )
+
                         self.driver.get(website_url)
-                        print_cyan('Site has been loaded')
+                        print_cyan('Site has been loaded.')
 
                         # get departure and return data 
                         data_extracted_departure, found_data_departure = self.get_data_from_current_page('ida')
-                        if found_data_departure is False or self.validate_total_budget(str(data_extracted_departure['miles']).replace('milhas', ''), miles_limit) is False:
+
+                        print('Checking origin range...')
+                        date_arg1 = str(data_extracted_departure['miles']).replace('milhas', '')
+                        if (found_data_departure is False
+                        or self.validate_total_budget(date_arg1, miles_limit) is False):
                             continue
 
                         self.display_data(data_extracted_departure)
                         p.sleep(3)
 
                         data_extracted_return, found_data_return = self.get_data_from_current_page('volta')
-                        if found_data_return is False or self.validate_total_budget(str(data_extracted_return['miles']).replace('milhas', '')) is False:
+                        print('Checking destination range...')
+                        date_arg2 = str(data_extracted_return['miles']).replace('milhas', '')
+                        if (found_data_return is False
+                        or self.validate_total_budget(date_arg2, miles_limit) is False):
                             continue
-
-                        self.display_data(data_extracted_return)
 
                         # Check if miles are valid
                         total_value = self.get_total_value(
                             str(data_extracted_departure['miles']).replace('milhas', ''),
                             str(data_extracted_return['miles']).replace('milhas', '')
                         )
-                        
+
+                        print('Checking the range of both values summed...')
                         if self.validate_total_budget(total_value, miles_limit):
                             # Separate data for message
+                            info_origin = NOMES_SIGLAS.get(
+                                data_insert["str_origin"],
+                                ""
+                            )
+
+                            info_destination = NOMES_SIGLAS.get(
+                                data_insert["str_destination"],
+                                ""
+                            )
+
                             data_telegram = {
                                 'company': data_extracted_departure['company'],
-                                'origem': f'{data_insert["str_origin"]} {NOMES_SIGLAS.get(data_insert["str_origin"], "")}',
+                                'origem': f'{data_insert["str_origin"]} {info_origin}',
                                 'data_ida': data_insert['date_departure'].strftime("%d/%m/%Y"),
                                 'milhas_ida': data_extracted_departure['miles'],
                                 'ida_hora_saida': data_extracted_departure['departure_time'],
@@ -284,7 +351,7 @@ class SmilesMilhasBot():
                                 'ida_duracao': data_extracted_departure['duration'],
                                 'tipo_voo': data_extracted_departure['type_trip'],
                                 'company_return': data_extracted_return['company'],
-                                'destino': f'{data_insert["str_destination"]} {NOMES_SIGLAS.get(data_insert["str_destination"], "")}',
+                                'destino': f'{data_insert["str_destination"]} {info_destination}',
                                 'data_volta': data_insert['date_return'].strftime("%d/%m/%Y"),
                                 'milhas_volta': data_extracted_return['miles'],
                                 'volta_hora_saida': data_extracted_return['departure_time'],
@@ -299,13 +366,15 @@ class SmilesMilhasBot():
                             bot_message = self.create_message_telegram(data_telegram)
 
                             # Send message to Telegram
-                            bot.send_message_to_group(json_data['channelNacional'], bot_message)
+                            bot.send_message_to_group(
+                                json_data['channelNacional'], bot_message
+                            )
 
                 except (KeyboardInterrupt, SystemExit):
                     exit()
                 except:     
                     funcs.display_error()
-
+    
 
 if __name__ == '__main__':
     bot = SmilesMilhasBot()
