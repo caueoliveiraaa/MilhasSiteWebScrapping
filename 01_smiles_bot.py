@@ -12,7 +12,7 @@ from destinations_miles import NATIONAL_MILES
 from general import GeneralFuncs as funcs
 from voeazul_bot_xpaths import xpaths
 from emojis import EMOJIS
-import telegram_bot as bot 
+import telegram_bot
 from print_colors import *
 
 from datetime import datetime, timedelta
@@ -32,10 +32,14 @@ class SmilesMilhasBot():
 
         try:
             # Run main function for different dates
-            thread1 = threading.Thread(target=self.main, args=(1, 50, 10000.0))
-            thread2 = threading.Thread(target=self.main, args=(51, 100, 10000.0))
-            thread3 = threading.Thread(target=self.main, args=(101, 150, 10000.0))
-            thread4 = threading.Thread(target=self.main, args=(150, 199, 10000.0))
+            thread1 = threading.Thread(target=self.main, args=(1, 50))
+            thread2 = threading.Thread(target=self.main, args=(51, 100))
+            thread3 = threading.Thread(target=self.main, args=(101, 150))
+            thread4 = threading.Thread(target=self.main, args=(150, 199))
+            # thread1 = threading.Thread(target=self.main, args=(1, 50, 10000.0))
+            # thread2 = threading.Thread(target=self.main, args=(51, 100, 10000.0))
+            # thread3 = threading.Thread(target=self.main, args=(101, 150, 10000.0))
+            # thread4 = threading.Thread(target=self.main, args=(150, 199, 10000.0))
             logging.info("Running thread 1")
             thread1.start()
             logging.info("Running thread 2")
@@ -130,7 +134,14 @@ class SmilesMilhasBot():
         """ Extract trip data from current departure/return page """
 
         found_data = False
-        data_extracted = {}
+        data_extracted = {
+            'duration': '',
+            'miles': '',
+            'departure_time': '',
+            'return_time': '',
+            'type_trip': '',
+            'company': '',
+        }
 
         for i in range(60):
             try:
@@ -175,28 +186,27 @@ class SmilesMilhasBot():
                 found_data = True
                 return data_extracted, found_data
             except:
-                data_extracted = {}
                 p.sleep(1)
 
             if i >= 3:
                 try:
                     self.driver.find_element('xpath', f'//*[@id="select-flight-accordion-ida"]/div[2]/div/div[5]/div[2]')
                     print_yellow(f'No tickets found!')
-                    return {}, False
+                    return data_extracted, found_data
                 except:
                     pass
 
                 try:
                     self.driver.find_element('xpath', f'//*[@id="select-flight-accordion-ida"]/div[2]/div/div[5]/div[2]/div/span[1]')
                     print_yellow(f'No tickets found!')
-                    return {}, False
+                    return data_extracted, found_data
                 except:
                     pass
 
                 try:
                     self.driver.find_element('xpath', f'//*[@id="main-iframe"]')
                     print_red(f'Found error page.')
-                    return {}, False
+                    return data_extracted, found_data
                 except:
                     pass
 
@@ -366,13 +376,13 @@ class SmilesMilhasBot():
                             bot_message = self.create_message_telegram(data_telegram)
 
                             # Send message to Telegram
-                            bot.send_message_to_group(
+                            telegram_bot.send_message_to_group(
                                 json_data['channelNacional'], bot_message
                             )
 
                 except (KeyboardInterrupt, SystemExit):
                     exit()
-                except:     
+                except:
                     funcs.display_error()
     
 

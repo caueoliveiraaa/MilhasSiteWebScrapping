@@ -243,9 +243,8 @@ class TotalAzulBot():
         options.add_argument('--disable-extensions')
         options.add_argument('--disable=popup-block')
         options.add_argument('--no-defaut-browser-check')
-        options.add_argument('--force-device-scale-factor=0.6')
+        options.add_argument('--force-device-scale-factor=0.8')
         # options.add_argument('--headless')
-
 
         for index_main in range(1, 185):
             # search dates
@@ -268,16 +267,16 @@ class TotalAzulBot():
 
                 try:
                     with webdriver.Chrome(service=service, options=options) as driver:
+                        base_url = "https://passagens.voeazul.com.br/pt/melhores-ofertas"
                         # base_url = "https://tudoazul.azulviagens.com.br/"
                         self.driver = driver
-                        base_url = "https://passagens.voeazul.com.br/pt/melhores-ofertas"
                         self.driver.get(base_url)
 
                         if self.insert_data_into_page(data_insert) is True:
-
                             #########################
-                            p.alert('extract')
+                            # p.alert('extract')
                             #########################
+                            for n in range(3600): print(n); time.sleep(1)
 
                             # FIX EXTRACTION AND AJUST DATA
 
